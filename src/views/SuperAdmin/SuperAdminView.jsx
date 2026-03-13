@@ -1,3 +1,4 @@
+import React, { useState, useEffect } from 'react';
 import { tenantService } from '../../api/tenantService';
 import { githubService } from '../../api/githubService';
 import { Plus, Building2, LayoutDashboard, Settings, Loader2, Globe, Github } from 'lucide-react';
@@ -58,150 +59,193 @@ const SuperAdminView = () => {
   };
 
   return (
-    <div className="min-h-screen bg-gray-50 flex">
-      {/* Sidebar */}
-      <aside className="w-64 bg-slate-900 text-white p-6 hidden md:block">
-        <h2 className="text-xl font-bold mb-8 flex items-center gap-2">
-          <Building2 className="text-orange-500" /> PRYSMA CORE
-        </h2>
-        <nav className="space-y-4">
-          <a href="#" className="flex items-center gap-3 p-3 bg-orange-600 rounded-lg">
-            <LayoutDashboard size={20} /> Empresas
-          </a>
-          <a href="#" className="flex items-center gap-3 p-3 text-slate-400 hover:text-white transition-colors">
-            <Settings size={20} /> Configuración Global
-          </a>
-        </nav>
-      </aside>
+    <div className="min-h-screen bg-[#0f172a] text-slate-200 selection:bg-orange-500/30">
+      {/* Background Glows */}
+      <div className="fixed top-[-10%] left-[-10%] w-[40%] h-[40%] bg-orange-600/10 blur-[120px] rounded-full"></div>
+      <div className="fixed bottom-[-10%] right-[-10%] w-[40%] h-[40%] bg-purple-600/10 blur-[120px] rounded-full"></div>
 
-      {/* Main Content */}
-      <main className="flex-1 p-8">
-        <header className="flex justify-between items-center mb-10">
-          <div>
-            <h1 className="text-3xl font-bold text-slate-800">Panel de Super Admin</h1>
-            <p className="text-slate-500">Gestiona el ecosistema de franquicias</p>
-          </div>
-          <button 
-            onClick={() => setShowModal(true)}
-            className="bg-orange-600 hover:bg-orange-700 text-white px-6 py-3 rounded-xl font-semibold flex items-center gap-2 transition-all shadow-lg"
-          >
-            <Plus size={20} /> Nueva Empresa
-          </button>
-        </header>
-
-        {loading ? (
-          <div className="flex justify-center items-center h-64">
-            <Loader2 className="animate-spin text-orange-600" size={40} />
-          </div>
-        ) : (
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-            {tenants.map((t) => (
-              <div key={t.id} className="bg-white p-6 rounded-2xl shadow-sm border border-slate-100 hover:shadow-md transition-shadow">
-                <div className="flex justify-between items-start mb-4">
-                  <div className="w-12 h-12 bg-slate-100 rounded-xl flex items-center justify-center">
-                    <Building2 className="text-slate-500" />
-                  </div>
-                  <span className="text-xs font-bold px-2 py-1 bg-green-100 text-green-700 rounded-full uppercase">
-                    Activa
-                  </span>
-                </div>
-                <h3 className="text-xl font-bold text-slate-800 mb-1">{t.name}</h3>
-                <p className="text-sm text-slate-500 mb-2">slug: /{t.slug}</p>
-                {t.custom_domain && (
-                  <div className="flex items-center gap-1 text-xs text-blue-600 mb-4 font-medium">
-                    <Globe size={12} /> {t.custom_domain}
-                  </div>
-                )}
-                <div className="flex items-center gap-2 mb-6">
-                  <div className="w-4 h-4 rounded-full" style={{ backgroundColor: t.theme?.primaryColor }}></div>
-                  <span className="text-xs text-slate-400">Color Principal</span>
-                </div>
-                <button className="w-full py-2 bg-slate-50 text-slate-600 rounded-lg font-medium hover:bg-slate-100 transition-colors">
-                  Gestionar Sucursal
-                </button>
+      <div className="flex relative z-10">
+        {/* Sidebar */}
+        <aside className="w-72 bg-slate-900/50 backdrop-blur-xl border-r border-white/5 p-8 hidden md:flex flex-col h-screen sticky top-0">
+          <div className="flex items-center gap-3 mb-12">
+            <div className="w-10 h-10 bg-gradient-to-br from-orange-500 via-purple-500 to-blue-500 p-[2px] rounded-xl shadow-lg shadow-orange-500/20">
+              <div className="w-full h-full bg-[#0f172a] rounded-[10px] flex items-center justify-center">
+                <img src="/assets/logo_prysma_white.svg" alt="Prysma" className="w-6 h-6" />
               </div>
-            ))}
+            </div>
+            <h2 className="text-2xl font-black tracking-tighter text-white">PRYSMA</h2>
+          </div>
+
+          <nav className="space-y-2 flex-1">
+            <a href="#" className="flex items-center gap-3 p-3.5 bg-gradient-to-r from-orange-600 to-orange-500 text-white rounded-xl shadow-lg shadow-orange-500/20 transition-all">
+              <LayoutDashboard size={20} /> <span className="font-semibold">Empresas</span>
+            </a>
+            <a href="#" className="flex items-center gap-3 p-3.5 text-slate-400 hover:text-white hover:bg-white/5 rounded-xl transition-all group">
+              <Settings size={20} className="group-hover:rotate-45 transition-transform" /> 
+              <span className="font-medium">Configuración Global</span>
+            </a>
+          </nav>
+
+          <div className="mt-auto pt-6 border-t border-white/5">
+             <div className="p-4 bg-white/5 rounded-2xl border border-white/5">
+                <p className="text-xs text-slate-500 mb-1 leading-relaxed">Soporte técnico</p>
+                <button className="text-sm font-semibold text-orange-500 hover:text-orange-400">Contactar a RedLab</button>
+             </div>
+          </div>
+        </aside>
+
+        {/* Main Content */}
+        <main className="flex-1 p-6 md:p-12">
+          <header className="flex flex-col md:flex-row justify-between items-start md:items-center gap-6 mb-12">
+            <div>
+              <h1 className="text-4xl font-black text-white tracking-tight mb-2">Panel de Control</h1>
+              <p className="text-slate-400 font-medium">Gestiona tu ecosistema de franquicias inteligentes</p>
+            </div>
+            <button 
+              onClick={() => setShowModal(true)}
+              className="group bg-white text-slate-900 hover:bg-orange-500 hover:text-white px-8 py-4 rounded-2xl font-bold flex items-center gap-3 transition-all transform hover:scale-105 active:scale-95 shadow-xl shadow-white/5"
+            >
+              <Plus size={22} className="group-hover:rotate-90 transition-transform" /> 
+              Registrar Empresa
+            </button>
+          </header>
+
+          {loading ? (
+            <div className="flex flex-col justify-center items-center h-[50vh] gap-4">
+              <div className="relative">
+                <div className="w-16 h-16 border-4 border-orange-500/20 rounded-full"></div>
+                <div className="w-16 h-16 border-4 border-t-orange-500 rounded-full animate-spin absolute top-0"></div>
+              </div>
+              <p className="text-slate-500 font-medium animate-pulse">Sincronizando con Supabase...</p>
+            </div>
+          ) : (
+            <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-8">
+              {tenants.map((t) => (
+                <div key={t.id} className="group relative bg-slate-900/40 backdrop-blur-md p-8 rounded-[2rem] border border-white/5 hover:border-orange-500/30 transition-all hover:shadow-2xl hover:shadow-orange-500/10 overflow-hidden">
+                  {/* Card Background Decoration */}
+                  <div className="absolute top-0 right-0 w-32 h-32 bg-gradient-to-br from-orange-500/10 to-transparent blur-2xl group-hover:opacity-100 transition-opacity opacity-0"></div>
+
+                  <div className="flex justify-between items-start mb-8">
+                    <div className="w-16 h-16 bg-white/5 rounded-2xl flex items-center justify-center border border-white/10 group-hover:bg-orange-500/10 group-hover:border-orange-500/20 transition-colors">
+                      <Building2 className="text-slate-400 group-hover:text-orange-500 transition-colors" size={32} />
+                    </div>
+                    <div className="flex flex-col items-end gap-2">
+                       <span className="text-[10px] font-black px-3 py-1 bg-emerald-500/10 text-emerald-500 rounded-full uppercase tracking-widest border border-emerald-500/20">
+                        Online
+                      </span>
+                    </div>
+                  </div>
+
+                  <h3 className="text-2xl font-black text-white mb-2 group-hover:text-orange-500 transition-colors">{t.name}</h3>
+                  <div className="flex flex-col gap-1 mb-8">
+                    <p className="text-sm text-slate-500 font-medium flex items-center gap-2">
+                      <Github size={14} /> /{t.slug}
+                    </p>
+                    {t.custom_domain && (
+                      <a href={t.custom_domain} target="_blank" rel="noreferrer" className="flex items-center gap-2 text-xs text-blue-400 hover:text-blue-300 font-bold transition-colors">
+                        <Globe size={14} /> {t.custom_domain.replace('https://', '')}
+                      </a>
+                    )}
+                  </div>
+
+                  <div className="flex items-center justify-between pt-6 border-t border-white/5">
+                    <div className="flex items-center gap-3">
+                      <div className="w-3 h-3 rounded-full shadow-[0_0_10px_rgba(0,0,0,0.5)]" style={{ backgroundColor: t.theme?.primaryColor || '#ea580c' }}></div>
+                      <span className="text-xs font-bold text-slate-500">Tema Visual</span>
+                    </div>
+                    <button className="px-4 py-2 bg-white/5 hover:bg-orange-500 text-slate-300 hover:text-white rounded-xl text-xs font-black transition-all border border-white/5 hover:border-orange-500">
+                      Gestionar
+                    </button>
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
+        </main>
+
+        {/* Modal Nueva Empresa */}
+        {showModal && (
+          <div className="fixed inset-0 bg-[#0f172a]/80 backdrop-blur-xl flex items-center justify-center p-4 z-[100] animate-in fade-in duration-300">
+            <div className="bg-slate-900 w-full max-w-lg rounded-[2.5rem] p-10 shadow-2xl border border-white/10 relative overflow-hidden">
+              {/* Modal Decoration */}
+              <div className="absolute -top-24 -right-24 w-48 h-48 bg-orange-500/20 blur-[80px] rounded-full"></div>
+
+              <div className="relative">
+                <h2 className="text-3xl font-black text-white mb-2">Nueva Franquicia</h2>
+                <p className="text-slate-400 mb-8 font-medium">Configura el núcleo y el repositorio de despliegue.</p>
+                
+                <form onSubmit={handleCreateTenant} className="space-y-6">
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    <div className="space-y-2">
+                      <label className="text-xs font-black text-slate-500 uppercase tracking-widest ml-1">Nombre</label>
+                      <input 
+                        type="text" required placeholder="Ej: Burger House"
+                        className="w-full bg-white/5 border border-white/10 p-4 rounded-2xl focus:ring-2 focus:ring-orange-500 outline-none text-white placeholder:text-slate-600 font-bold transition-all"
+                        value={newTenant.name}
+                        onChange={(e) => setNewTenant({...newTenant, name: e.target.value})}
+                      />
+                    </div>
+                    <div className="space-y-2">
+                      <label className="text-xs font-black text-slate-500 uppercase tracking-widest ml-1">Slug ID</label>
+                      <input 
+                        type="text" required placeholder="burger-house"
+                        className="w-full bg-white/5 border border-white/10 p-4 rounded-2xl focus:ring-2 focus:ring-orange-500 outline-none text-white placeholder:text-slate-600 font-bold transition-all"
+                        value={newTenant.slug}
+                        onChange={(e) => setNewTenant({...newTenant, slug: e.target.value.toLowerCase().replace(/\s+/g, '-')})}
+                      />
+                    </div>
+                  </div>
+
+                  <div className="space-y-2">
+                    <label className="text-xs font-black text-slate-500 uppercase tracking-widest ml-1">Dominio Personalizado</label>
+                    <div className="relative">
+                      <Globe className="absolute left-4 top-4.5 text-slate-600" size={20} />
+                      <input 
+                        type="text" placeholder="menu.tudominio.com"
+                        className="w-full bg-white/5 border border-white/10 p-4 pl-12 rounded-2xl focus:ring-2 focus:ring-orange-500 outline-none text-white placeholder:text-slate-600 font-bold transition-all"
+                        value={newTenant.customDomain}
+                        onChange={(e) => setNewTenant({...newTenant, customDomain: e.target.value.toLowerCase()})}
+                      />
+                    </div>
+                  </div>
+
+                  <div className="space-y-2">
+                    <label className="text-xs font-black text-slate-500 uppercase tracking-widest ml-1">Identidad Visual</label>
+                    <input 
+                      type="color" 
+                      className="w-full h-14 bg-white/5 border border-white/10 p-2 rounded-2xl cursor-pointer hover:bg-white/10 transition-colors"
+                      value={newTenant.primaryColor}
+                      onChange={(e) => setNewTenant({...newTenant, primaryColor: e.target.value})}
+                    />
+                  </div>
+
+                  <div className="flex gap-4 pt-6">
+                    <button 
+                      type="button" onClick={() => setShowModal(false)}
+                      className="flex-1 py-4 text-slate-400 font-bold hover:text-white hover:bg-white/5 rounded-2xl transition-all"
+                    >
+                      Cancelar
+                    </button>
+                    <button 
+                      type="submit" disabled={creatingRepo}
+                      className="flex-1 py-4 bg-white text-slate-900 font-black rounded-2xl hover:bg-orange-500 hover:text-white flex items-center justify-center gap-3 disabled:opacity-50 transition-all shadow-xl shadow-orange-500/10"
+                    >
+                      {creatingRepo ? (
+                          <>
+                            <Loader2 className="animate-spin" size={20} />
+                            <span>Creando...</span>
+                          </>
+                      ) : (
+                          'Confirmar Registro'
+                      )}
+                    </button>
+                  </div>
+                </form>
+              </div>
+            </div>
           </div>
         )}
-      </main>
-
-      {/* Modal Nueva Empresa */}
-      {showModal && (
-        <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center p-4 z-50">
-          <div className="bg-white w-full max-w-md rounded-2xl p-8 shadow-2xl">
-            <h2 className="text-2xl font-bold mb-6">Crear Nueva Franchise</h2>
-            <form onSubmit={handleCreateTenant} className="space-y-4">
-              <div>
-                <label className="block text-sm font-medium text-slate-700 mb-1">Nombre Comercial</label>
-                <input 
-                  type="text" 
-                  required
-                  placeholder="Ej: Burger House"
-                  className="w-full p-3 rounded-lg border border-slate-200 focus:ring-2 focus:ring-orange-500 outline-none"
-                  value={newTenant.name}
-                  onChange={(e) => setNewTenant({...newTenant, name: e.target.value})}
-                />
-              </div>
-              <div>
-                <label className="block text-sm font-medium text-slate-700 mb-1">Slug (URL)</label>
-                <input 
-                  type="text" 
-                  required
-                  placeholder="ej: burger-house"
-                  className="w-full p-3 rounded-lg border border-slate-200 focus:ring-2 focus:ring-orange-500 outline-none"
-                  value={newTenant.slug}
-                  onChange={(e) => setNewTenant({...newTenant, slug: e.target.value.toLowerCase().replace(/\s+/g, '-')})}
-                />
-              </div>
-              <div>
-                <label className="block text-sm font-medium text-slate-700 mb-1">Dominio Personalizado (Opcional)</label>
-                <div className="relative">
-                  <Globe className="absolute left-3 top-3.5 text-slate-400" size={18} />
-                  <input 
-                    type="text" 
-                    placeholder="ej: menu.mihamburguesa.com"
-                    className="w-full p-3 pl-10 rounded-lg border border-slate-200 focus:ring-2 focus:ring-orange-500 outline-none"
-                    value={newTenant.customDomain}
-                    onChange={(e) => setNewTenant({...newTenant, customDomain: e.target.value.toLowerCase()})}
-                  />
-                </div>
-              </div>
-              <div>
-                <label className="block text-sm font-medium text-slate-700 mb-1">Color Principal</label>
-                <input 
-                  type="color" 
-                  className="w-full h-12 p-1 rounded-lg border border-slate-200 cursor-pointer"
-                  value={newTenant.primaryColor}
-                  onChange={(e) => setNewTenant({...newTenant, primaryColor: e.target.value})}
-                />
-              </div>
-              <div className="flex gap-4 pt-4">
-                <button 
-                  type="button"
-                  onClick={() => setShowModal(false)}
-                  className="flex-1 py-3 text-slate-600 font-semibold hover:bg-slate-50 rounded-lg"
-                >
-                  Cancelar
-                </button>
-                <button 
-                  type="submit"
-                  disabled={creatingRepo}
-                  className="flex-1 py-3 bg-orange-600 text-white font-semibold rounded-lg hover:bg-orange-700 flex items-center justify-center gap-2 disabled:opacity-50"
-                >
-                  {creatingRepo ? (
-                      <>
-                        <Loader2 className="animate-spin" size={20} />
-                        Creando Repo...
-                      </>
-                  ) : (
-                      'Confirmar'
-                  )}
-                </button>
-              </div>
-            </form>
-          </div>
-        </div>
-      )}
+      </div>
     </div>
   );
 };

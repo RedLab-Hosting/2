@@ -108,13 +108,23 @@ CREATE POLICY "Admins can manage exchange rates" ON exchange_rates
 -- Help function to check if user is superadmin
 CREATE OR REPLACE FUNCTION is_superadmin()
 RETURNS BOOLEAN AS $$
-BEGIN
-  RETURN EXISTS (
+  SELECT EXISTS (
     SELECT 1 FROM profiles 
     WHERE id = auth.uid() AND role = 'superadmin'
   );
-END;
-$$ LANGUAGE plpgsql SECURITY DEFINER SET search_path = public;
+$$ LANGUAGE sql SECURITY DEFINER SET search_path = public;
+
+-- Help function to get current user's tenant_id
+CREATE OR REPLACE FUNCTION get_my_tenant_id()
+RETURNS UUID AS $$
+  SELECT tenant_id FROM profiles WHERE id = auth.uid();
+$$ LANGUAGE sql SECURITY DEFINER SET search_path = public;
+
+-- Help function to get current user's role
+CREATE OR REPLACE FUNCTION get_my_role()
+RETURNS TEXT AS $$
+  SELECT role FROM profiles WHERE id = auth.uid();
+$$ LANGUAGE sql SECURITY DEFINER SET search_path = public;
 
 -- Policies for Tenants
 CREATE POLICY "SuperAdmins can do everything on tenants" ON tenants
@@ -122,7 +132,7 @@ CREATE POLICY "SuperAdmins can do everything on tenants" ON tenants
 
 CREATE POLICY "Users can see their own tenant" ON tenants
     FOR SELECT USING (
-        id = (SELECT tenant_id FROM profiles WHERE profiles.id = auth.uid())
+        id = get_my_tenant_id()
     );
 
 CREATE POLICY "Public can see tenant by slug for client view" ON tenants
@@ -134,8 +144,8 @@ CREATE POLICY "Users can see their own profile" ON profiles
 
 CREATE POLICY "Admins can see profiles of their tenant" ON profiles
     FOR SELECT USING (
-        tenant_id = (SELECT tenant_id FROM profiles WHERE profiles.id = auth.uid())
-        AND (SELECT role FROM profiles WHERE profiles.id = auth.uid()) IN ('admin', 'superadmin')
+        tenant_id = get_my_tenant_id()
+        AND get_my_role() IN ('admin', 'superadmin')
     );
 
 -- Policies for Categories

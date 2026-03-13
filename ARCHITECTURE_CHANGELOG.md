@@ -43,8 +43,14 @@ Este documento registra las decisiones técnicas, cambios de base de datos y con
 - **Solución**: Se añadieron las importaciones faltantes y se verificó el renderizado.
 
 ### Advertencias de Seguridad Supabase (Linter)
-- **Problema**: `Policy Exists RLS Disabled` y `Function Search Path Mutable`.
-- **Causa**: Políticas creadas sin activar RLS en las tablas, y funciones sin esquema fijo de búsqueda.
+- **Problema**: `Policy Exists RLS Disabled`, `Function Search Path Mutable` e `Infinite recursion detected`.
+- **Causa**: Políticas creadas sin activar RLS, funciones sin esquema fijo y subconsultas circulares en las políticas de `profiles`.
 - **Solución**:
   - Se ejecutó `ALTER TABLE ... ENABLE ROW LEVEL SECURITY` en todas las tablas.
   - Se añadió `SET search_path = public` a la función `is_superadmin`.
+  - Se crearon funciones `SECURITY DEFINER` (`get_my_tenant_id`, `get_my_role`) para evitar recursión en las políticas de RLS.
+
+### Fallo en el Procesamiento de Tailwind v4
+- **Problema**: Los estilos de Tailwind no se aplicaban a pesar de tener las clases en el HTML.
+- **Causa**: Falta del plugin `@tailwindcss/vite` y orden incorrecto de plugins en `vite.config.js`.
+- **Solución**: Se instaló el plugin oficial de Vite para Tailwind v4, se configuró en `vite.config.js` antes que el plugin de React, y se simplificó `index.css` con el nuevo estándar de `@import`.
