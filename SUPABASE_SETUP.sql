@@ -114,7 +114,7 @@ BEGIN
     WHERE id = auth.uid() AND role = 'superadmin'
   );
 END;
-$$ LANGUAGE plpgsql SECURITY DEFINER;
+$$ LANGUAGE plpgsql SECURITY DEFINER SET search_path = public;
 
 -- Policies for Tenants
 CREATE POLICY "SuperAdmins can do everything on tenants" ON tenants
