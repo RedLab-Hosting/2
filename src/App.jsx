@@ -75,7 +75,17 @@ function App() {
             </TenantProvider>
           } />
 
-          <Route path="/" element={<Navigate to="/superadmin" />} />
+          <Route path="/" element={
+            isGitHubPages ? (
+              <TenantProvider>
+                <CartProvider>
+                  <StorefrontView />
+                </CartProvider>
+              </TenantProvider>
+            ) : (
+              <Navigate to="/superadmin" />
+            )
+          } />
         </Routes>
       </AuthProvider>
     </Router>

@@ -23,15 +23,20 @@ export const TenantProvider = ({ children }) => {
         const hostname = window.location.hostname;
         let slug = tenantSlug;
 
-        // Fallback detection logic for when params are empty or inside non-nested providers
+        // Fallback detection logic for GitHub Pages subfolders
         if (!slug) {
-          const pathSegments = location.pathname.split('/');
-          // Avoid system routes
-          const firstSegment = pathSegments[1];
-          if (firstSegment && !['superadmin', 'admin', 'delivery', 'login'].includes(firstSegment)) {
-            slug = firstSegment;
+          const pathSegments = window.location.pathname.split('/').filter(Boolean);
+          if (hostname.includes('github.io') && pathSegments.length > 0) {
+              // On GH Pages, the first segment is usually the repo name (slug)
+              slug = pathSegments[0];
           } else {
-            slug = 'default';
+              const routerSegments = location.pathname.split('/').filter(Boolean);
+              const firstSegment = routerSegments[0];
+              if (firstSegment && !['superadmin', 'admin', 'delivery', 'login'].includes(firstSegment)) {
+                slug = firstSegment;
+              } else {
+                slug = 'demo'; // Default to demo instead of 'default'
+              }
           }
         }
 
