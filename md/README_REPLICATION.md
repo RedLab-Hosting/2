@@ -1,88 +1,85 @@
-# 🚀 Guía de Replicación - Fast Food Platform
+# 🚀 Guía de Replicación - Prysma Platform
 
-Esta guía detalla todo lo necesario para replicar exactamente la estructura, dependencias y configuración de esta aplicación web multi-tenant.
+Esta guía detalla todo lo necesario para replicar la estructura, dependencias y configuración de la aplicación multi-tenant.
 
-## 📁 Distribución de Carpetas
-
-La arquitectura sigue un patrón modular donde el `core` es compartido y la personalización se gestiona vía Context API.
+## 📁 Estructura del Proyecto
 
 ```text
 demo-page/
-├── public/                 # Assets públicos
+├── .github/workflows/deploy.yml  # CI/CD para GitHub Pages
+├── public/assets/                 # Logos, iconos, branding
 ├── src/
-│   ├── api/                # Capa de servicios (Supabase, GitHub, etc.)
-│   │   ├── baseService.js  # Clase base para servicios CRUD
-│   │   ├── productService.js # Gestión de productos (multi-tenant)
-│   │   ├── categoryService.js # Gestión de categorías (multi-tenant)
-│   │   └── ...
-│   ├── components/         # Componentes UI (Client, Admin, SuperAdmin)
-│   ├── TenantContext.jsx # Branding y configuración de la empresa
-│   ├── CartContext.jsx   # Gestión del carrito de compras
-│   └── AuthContext.jsx   # Gestión de sesiones con Supabase
-│   ├── views/              # Vistas basadas en roles
-│   ├── App.jsx             # Enrutador principal y configuración
-│   └── main.jsx            # Punto de entrada de Vite
-├── .env                    # Variables de entorno (VITE_ prefix)
-├── SUPABASE_SETUP.sql      # Script de base de datos
-└── vite.config.js          # Configuración de Vite
+│   ├── api/                       # 8 servicios (Supabase, GitHub, BCV)
+│   ├── components/
+│   │   ├── Admin/                 # ProductModal (crear/editar productos)
+│   │   ├── Client/                # ProductCard, ProductModal (cliente)
+│   │   └── Common/                # ErrorBoundary
+│   ├── context/                   # TenantContext, AuthContext, CartContext
+│   ├── utils/                     # featureFlags, whatsappUtils
+│   ├── views/
+│   │   ├── SuperAdmin/            # Panel de control de franquicias
+│   │   ├── Admin/                 # Dashboard del negocio
+│   │   ├── Client/                # Storefront + Checkout
+│   │   └── Login/                 # LoginView
+│   ├── App.jsx                    # Router con basename dinámico
+│   ├── main.jsx                   # Punto de entrada
+│   └── index.css                  # Tailwind v4 imports
+├── .env                           # Variables de entorno (VITE_ prefix)
+├── SUPABASE_SETUP.sql             # Script de base de datos idempotente
+├── vite.config.js                 # base: './' para GitHub Pages
+└── package.json
 ```
 
-## 🛠️ Tecnologías y Dependencias
+## 🛠️ Dependencias
 
-### Core
-
-- **React 19**: Framework de UI.
-- **Tailwind CSS v4**: Para estilos dinámicos y branding.
-- **Vite 6**: Tooling para desarrollo ultra-rápido.
-
-### Librerías Clave
-
+### Instalar todo:
 ```bash
-npm install @supabase/supabase-js lucide-react framer-motion react-router-dom leaflet react-leaflet qrcode.react
-```
-
-## 🚀 Pasos para la Replicación
-
-### 1. Clonar e Instalar
-
-```bash
-git clone <url-del-repositorio>
-cd fast-food
 npm install
 ```
 
-### 2. Configuración de Base de Datos (Supabase)
+### Dependencias principales:
+- `react`, `react-dom` (v19)
+- `react-router-dom` (v7)
+- `@supabase/supabase-js`
+- `@tailwindcss/vite` (v4)
+- `framer-motion`, `lucide-react`
+- `leaflet`, `react-leaflet`, `leaflet-routing-machine`
+- `libsodium-wrappers`, `qrcode.react`
 
-1. Crea un proyecto en [Supabase](https://supabase.com/).
-2. Ejecuta `SUPABASE_SETUP.sql` en el SQL Editor para crear las tablas y políticas RLS.
+## 🚀 Pasos para Replicar
 
-### 3. Variables de Entorno
-
-Crea un archivo `.env`:
-
-```env
-VITE_SUPABASE_URL=https://tu-proyecto.supabase.co
-VITE_SUPABASE_ANON_KEY=tu-anon-key-aqui
-VITE_GITHUB_TOKEN=tu-github-token-para-automatizacion
+### 1. Clonar e instalar
+```bash
+git clone https://github.com/RedLab-Hosting/prysma.git
+cd prysma
+npm install
 ```
 
-### 4. Ejecución Local
+### 2. Configurar Supabase
+1. Crea un proyecto en [Supabase](https://supabase.com/).
+2. Ejecuta `SUPABASE_SETUP.sql` en el SQL Editor.
 
+### 3. Variables de entorno
+Crea un archivo `.env`:
+```env
+VITE_SUPABASE_URL=https://tu-proyecto.supabase.co
+VITE_SUPABASE_ANON_KEY=tu-anon-key
+VITE_GITHUB_TOKEN=tu-github-pat
+```
+
+### 4. Ejecución local
 ```bash
 npm run dev
 ```
+Disponible en `http://localhost:5173/superadmin`
 
-La app estará disponible en `http://localhost:5173`.
-
-## 💱 Gestión de Tasa de Cambio (BCV)
-
-La aplicación incluye un sistema inteligente de sincronización de tasas desde el Banco Central de Venezuela:
-
-- **Sincronización Dual:** Un solo botón actualiza USD y EUR simultáneamente usando un scraper robusto con proxy CORS.
-- **Multimoneda:** Soporte nativo para USD, EUR y soporte experimental para COP (Pesos Colombianos).
-- **Modos de Control:** Alterna entre actualización automática (BCV) o manual para cada moneda.
-- **Automatización:** Se incluyen guías para programar actualizaciones diarias a las 4:00 PM (VET).
+### 5. Despliegue automático
+Al crear una empresa desde el SuperAdmin:
+1. Se genera un repo desde el template `prysma`
+2. Se inyectan los secretos de Supabase automáticamente
+3. Se activa GitHub Pages (source: Actions)
+4. Se dispara el primer build
 
 ---
 
-_Nota: Esta guía refleja el estado actual de la migración a Supabase, la arquitectura modular v2.0 y el sistema de multi-divisa._
+_Actualizado: 2026-03-25_
