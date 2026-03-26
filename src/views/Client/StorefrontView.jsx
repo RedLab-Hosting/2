@@ -228,6 +228,7 @@ const StorefrontView = () => {
                 <ProductCard 
                   product={product} 
                   exchangeRate={exchangeRate} 
+                  onOpenModal={() => handleProductClick(product)}
                 />
               </div>
             ))}

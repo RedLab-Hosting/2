@@ -3,7 +3,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { Plus, Minus, ShoppingCart } from 'lucide-react';
 import { useCart } from '../../context/CartContext';
 
-const ProductCard = ({ product, exchangeRate = 1 }) => {
+const ProductCard = ({ product, exchangeRate = 1, onOpenModal }) => {
   const { addToCart, updateQuantity, getProductQuantity } = useCart();
   const quantityInCart = getProductQuantity(product.id);
 
@@ -15,11 +15,9 @@ const ProductCard = ({ product, exchangeRate = 1 }) => {
 
   const handleAddClick = (e) => {
     e.stopPropagation();
-    // If product has modifiers, we should open the modal instead.
-    // For now, simple add for demo.
-    if (product.hasModifiers) {
-      // openModal(product); 
-      // (This will be implemented in ProductModal)
+    // If product has modifiers, open the modal instead to let user choose
+    if (product.modifiers && product.modifiers.length > 0) {
+      if (onOpenModal) onOpenModal();
     } else {
       addToCart(product, null, 1);
     }
