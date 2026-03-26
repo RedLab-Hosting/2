@@ -69,8 +69,10 @@ const StorefrontView = () => {
               image_url: 'https://images.unsplash.com/photo-1568901346375-23c9450c58cd?q=80&w=800&auto=format&fit=crop',
               hasModifiers: true,
               modifiers: [
-                { name: 'Término de la carne', required: true, options: ['Bien cocida', 'Término medio', 'Al punto'] },
-                { name: 'Extras', required: false, options: ['Extra Queso', 'Tocineta', 'Huevo'] }
+                { name: 'Extra Queso Cheddar', extraPrice: 1.50 },
+                { name: 'Tocineta Crujiente', extraPrice: 2.00 },
+                { name: 'Huevo Frito', extraPrice: 1.00 },
+                { name: 'Doble Carne', extraPrice: 3.50 }
               ]
             },
             { 

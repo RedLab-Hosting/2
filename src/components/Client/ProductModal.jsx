@@ -24,7 +24,7 @@ const ProductModal = ({ product, isOpen, onClose, exchangeRate = 1 }) => {
       if (next[mod.name]) {
         delete next[mod.name];
       } else {
-        next[mod.name] = `+ $${mod.extraPrice.toFixed(2)}`;
+        next[mod.name] = `+ $${(mod.extraPrice || 0).toFixed(2)}`;
       }
       return next;
     });
@@ -33,7 +33,7 @@ const ProductModal = ({ product, isOpen, onClose, exchangeRate = 1 }) => {
   const getExtrasTotal = () => {
     if (!product.modifiers) return 0;
     return product.modifiers.reduce((sum, mod) => {
-      return sum + (selectedModifiers[mod.name] ? mod.extraPrice : 0);
+      return sum + (selectedModifiers[mod.name] ? (mod.extraPrice || 0) : 0);
     }, 0);
   };
 
@@ -138,7 +138,7 @@ const ProductModal = ({ product, isOpen, onClose, exchangeRate = 1 }) => {
                             </span>
                           </div>
                           <span className="font-black text-sm text-zinc-900">
-                            + ${mod.extraPrice.toFixed(2)}
+                            + ${(mod.extraPrice || 0).toFixed(2)}
                           </span>
                         </button>
                       );

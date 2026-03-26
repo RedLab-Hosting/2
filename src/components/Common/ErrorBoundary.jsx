@@ -1,5 +1,5 @@
 import React from 'react';
-import { AlertTriangle, RefreshCcw, ShieldAlert, Cpu } from 'lucide-react';
+import { AlertTriangle, RefreshCcw, ShieldAlert, Cpu, Copy } from 'lucide-react';
 
 class ErrorBoundary extends React.Component {
   constructor(props) {
@@ -8,7 +8,8 @@ class ErrorBoundary extends React.Component {
       hasError: false, 
       error: null, 
       errorInfo: null,
-      expanded: false 
+      expanded: false,
+      copied: false
     };
   }
 
@@ -57,12 +58,32 @@ class ErrorBoundary extends React.Component {
 
               {/* Debug Info */}
               <div>
-                <button 
-                  onClick={() => this.setState({ expanded: !this.state.expanded })}
-                  className="flex items-center gap-2 text-xs font-bold text-zinc-400 hover:text-zinc-600 transition-colors uppercase tracking-widest mb-3"
-                >
-                  <Cpu size={14} /> {this.state.expanded ? 'Ocultar Detalles Técnicos' : 'Ver Detalles Técnicos'}
-                </button>
+                <div className="flex flex-wrap items-center justify-between gap-4 mb-3">
+                  <button 
+                    onClick={() => this.setState({ expanded: !this.state.expanded })}
+                    className="flex items-center gap-2 text-xs font-bold text-zinc-400 hover:text-zinc-600 transition-colors uppercase tracking-widest"
+                  >
+                    <Cpu size={14} /> {this.state.expanded ? 'Ocultar Detalles Técnicos' : 'Ver Detalles Técnicos'}
+                  </button>
+                  
+                  <button 
+                    onClick={() => {
+                      const errorText = `ErrorMessage: ${this.state.error?.message}\n\nStack:\n${this.state.error?.stack}\n\nComponentStack:\n${this.state.errorInfo?.componentStack}`;
+                      navigator.clipboard.writeText(errorText)
+                        .then(() => {
+                          this.setState({ copied: true });
+                          setTimeout(() => this.setState({ copied: false }), 2000);
+                        })
+                        .catch(err => {
+                          console.error("Failed to copy", err);
+                          alert("No se pudo copiar el error al portapapeles.");
+                        });
+                    }}
+                    className={`flex items-center gap-2 text-xs font-bold transition-colors uppercase tracking-widest ${this.state.copied ? 'text-emerald-500' : 'text-zinc-500 hover:text-zinc-800'}`}
+                  >
+                    <Copy size={14} /> {this.state.copied ? '¡Error Copiado!' : 'Copiar Error'}
+                  </button>
+                </div>
                 
                 {this.state.expanded && (
                   <div className="bg-zinc-900 rounded-xl p-4 text-[10px] font-mono text-zinc-400 overflow-auto max-h-48 leading-relaxed shadow-inner">
