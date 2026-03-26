@@ -72,8 +72,9 @@ src/
 │   └── AuthContext.jsx   # Sesiones Supabase
 ├── views/
 │   ├── SuperAdmin/  # Gestión de franquicias + Configurar Core
-│   ├── Admin/       # Dashboard del negocio
-│   ├── Client/      # Storefront + Checkout
+│   ├── Admin/       # Dashboard del negocio con visualización de pedidos en vivo
+│   ├── Client/      # Storefront, Cart, Checkout, y OrderTrackingView
+│   ├── Delivery/    # DeliveryView para repartidores
 │   └── Login/       # LoginView
 └── utils/           # featureFlags.js, whatsappUtils.js
 ```

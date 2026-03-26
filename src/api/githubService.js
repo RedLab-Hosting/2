@@ -74,6 +74,11 @@ export const githubService = {
       VITE_GITHUB_TOKEN: this.token
     };
 
+    console.log(`Setting up secrets for ${repoName}...`);
+    for (const [key, val] of Object.entries(secrets)) {
+        if (!val) console.warn(`Secret ${key} is missing or undefined!`);
+    }
+
     const results = [];
     for (const [name, value] of Object.entries(secrets)) {
       results.push(await this.setSecret(repoName, name, value));

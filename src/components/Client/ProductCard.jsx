@@ -41,14 +41,13 @@ const ProductCard = ({ product, exchangeRate = 1 }) => {
           className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-500"
         />
         
-        {/* Price Tag (Glassmorphism) */}
-        <div className="absolute top-3 right-3 flex flex-col items-end gap-1">
-          <div className="bg-black/60 backdrop-blur-md px-3 py-1 rounded-full border border-white/20">
-            <span className="text-white font-bold text-sm">${product.price.toFixed(2)}</span>
-          </div>
-          <div className="bg-white/40 backdrop-blur-sm px-2 py-0.5 rounded-full border border-white/40">
-            <span className="text-zinc-900 font-extrabold text-[10px]">{priceBs} Bs.</span>
-          </div>
+        {/* Gradient overlay for price legibility */}
+        <div className="absolute inset-x-0 bottom-0 h-20 bg-linear-to-t from-black/60 to-transparent pointer-events-none" />
+
+        {/* Price inside image - bottom right, no capsule */}
+        <div className="absolute bottom-2 right-3 flex flex-col items-end z-10">
+          <span className="text-white font-black text-lg drop-shadow-lg">${product.price.toFixed(2)}</span>
+          <span className="text-white/80 font-bold text-sm drop-shadow-md">{priceBs} Bs.</span>
         </div>
 
         {/* Quantity Indicator in Image */}

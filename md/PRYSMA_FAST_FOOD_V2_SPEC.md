@@ -70,12 +70,13 @@ Experiencia de usuario rápida y "deliciosa".
 ```text
 src/
 ├── api/             # Servicios de Supabase y GitHub
-├── components/      # UI Atómica y componentes Admin/Client
+├── components/      # UI Atómica y componentes Admin/Client/Common
 ├── context/         # AuthContext, TenantContext, CartContext
 ├── views/
-│   ├── Client/      # Storefront y Checkout
-│   ├── Admin/       # Dashboard y Pedidos
-│   └── SuperAdmin/  # Gestión Global
+│   ├── Client/      # Storefront, Checkout y Order Tracking
+│   ├── Admin/       # Dashboard y Gestión de Pedidos Live
+│   ├── Delivery/    # App Móvil para Repartidores
+│   └── SuperAdmin/  # Gestión Global de Clientes
 ```
 
 ---

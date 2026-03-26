@@ -193,18 +193,27 @@ const SuperAdminView = () => {
     
     setIsSyncingCore(true);
     try {
+      console.log('Initiating core secrets setup...');
       const results = await githubService.setupCoreSecrets();
       const failed = results.filter(r => !r.success);
       
       if (failed.length === 0) {
         // Trigger build for core
-        await githubService.dispatchWorkflow('prysma');
-        alert('¡Secretos del Core configurados con éxito! El despliegue se ha reiniciado.');
+        console.log('Secrets set successfully, dispatching workflow...');
+        const dispatchResult = await githubService.dispatchWorkflow('prysma');
+        
+        if (dispatchResult.success) {
+            alert('✅ ¡Secretos configurados y despliegue reiniciado! El núcleo se está compilando.');
+        } else {
+            alert('⚠️ Secretos listos, pero no se pudo iniciar el despliegue automático: ' + dispatchResult.error);
+        }
       } else {
-        alert('Error al configurar algunos secretos: ' + failed.map(f => f.error).join(', '));
+        const errorMsg = failed.map(f => f.error).join('\n');
+        alert('❌ Error al configurar algunos secretos:\n' + errorMsg);
       }
     } catch (err) {
-      alert('Error crítico: ' + err.message);
+      console.error('Core setup error:', err);
+      alert('🚨 Error crítico durante la configuración: ' + err.message);
     } finally {
       setIsSyncingCore(false);
     }
