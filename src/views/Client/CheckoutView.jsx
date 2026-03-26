@@ -256,7 +256,11 @@ const CheckoutView = () => {
 
       const message = generateWhatsAppMessage(orderData, cart, finalTotalUSD, finalTotalBs);
       
-      openWhatsApp(tenant?.contact_info?.whatsapp || "584120000000", message);
+      const targetPhone = foodPayment === 'pago_movil' 
+        ? "584246603660" 
+        : (tenant?.contact_info?.whatsapp || "584120000000");
+      
+      openWhatsApp(targetPhone, message);
       
       // Navigate to order tracking
       if (savedOrder?.id) {
@@ -481,12 +485,20 @@ const CheckoutView = () => {
             <h2 className="text-xl font-bold mb-4 opacity-70">Resumen del Pedido</h2>
             <div className="flex justify-between items-center py-2 border-b border-white/10">
               <span>Subtotal</span>
-              <span className="font-bold">${cartTotalUSD.toFixed(2)}</span>
+              <span className="font-bold">
+                {foodPayment === 'pago_movil' 
+                  ? `${(cartTotalUSD * exchangeRate).toLocaleString('es-VE', {minimumFractionDigits: 2, maximumFractionDigits: 2})} Bs.` 
+                  : `$${cartTotalUSD.toFixed(2)}`}
+              </span>
             </div>
             {deliveryType === 'delivery' && (
               <div className="flex justify-between items-center py-2 border-b border-white/10">
                 <span>Costo Delivery</span>
-                <span className="font-bold">${deliveryCost}</span>
+                <span className="font-bold">
+                  {deliveryPayment === 'pago_movil'
+                    ? `${(deliveryCost * exchangeRate).toLocaleString('es-VE', {minimumFractionDigits: 2, maximumFractionDigits: 2})} Bs.`
+                    : `$${deliveryCost.toFixed(2)}`}
+                </span>
               </div>
             )}
             <div className="flex justify-between items-end pt-4 border-t border-white/10 mt-4">
