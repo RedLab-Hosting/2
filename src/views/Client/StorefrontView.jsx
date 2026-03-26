@@ -5,6 +5,7 @@ import { useCart } from '../../context/CartContext';
 import { exchangeRateService } from '../../api/exchangeRateService';
 import ProductCard from '../../components/Client/ProductCard';
 import ProductModal from '../../components/Client/ProductModal';
+import CartDrawer from '../../components/Client/CartDrawer';
 import { motion, AnimatePresence } from 'framer-motion';
 import { ShoppingBag, ShoppingCart, Search } from 'lucide-react';
 
@@ -17,6 +18,7 @@ const StorefrontView = () => {
   const [activeCategory, setActiveCategory] = useState('all');
   const [selectedProduct, setSelectedProduct] = useState(null);
   const [isModalOpen, setIsModalOpen] = useState(false);
+  const [isCartDrawerOpen, setIsCartDrawerOpen] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
   const [loading, setLoading] = useState(true);
 
@@ -162,7 +164,7 @@ const StorefrontView = () => {
               <Search size={20} />
             </button>
             <button 
-              onClick={() => navigate(`/${tenant?.slug || 'default'}/cart`)}
+              onClick={() => setIsCartDrawerOpen(true)}
               className="relative p-2.5 bg-zinc-100 text-zinc-500 hover:text-primary rounded-xl transition-all"
             >
               <ShoppingCart size={20} />
@@ -238,35 +240,11 @@ const StorefrontView = () => {
         </div>
       </main>
 
-      {/* Floating Cart Button */}
-      {cartCount > 0 && (
-        <motion.div 
-          initial={{ y: 100 }}
-          animate={{ y: 0 }}
-          className="fixed bottom-6 left-1/2 -translate-x-1/2 z-40 w-full max-w-md px-4"
-        >
-          <button 
-            onClick={() => navigate(`/${tenant?.slug || 'default'}/cart`)}
-            className="w-full bg-zinc-900 text-white py-4 px-6 rounded-2xl flex items-center justify-between hover:scale-[1.02] active:scale-[0.98] transition-all group"
-          >
-          <div className="flex items-center gap-3">
-            <div className="relative">
-              <ShoppingBag size={24} className="group-hover:rotate-12 transition-transform" />
-              {cartCount > 0 && (
-                <span className="absolute -top-2 -right-2 bg-primary text-white text-[10px] w-5 h-5 rounded-full flex items-center justify-center font-bold border-2 border-zinc-900" style={{ backgroundColor: 'var(--primary-color)' }}>
-                  {cartCount}
-                </span>
-              )}
-            </div>
-            <span className="font-bold">Ver Carrito</span>
-          </div>
-          <div className="text-right">
-            <div className="font-bold">${cartTotalUSD.toFixed(2)}</div>
-            <div className="text-[10px] opacity-60">{(cartTotalUSD * exchangeRate).toFixed(2)} Bs.</div>
-          </div>
-        </button>
-      </motion.div>
-      )}
+      {/* Cart Drawer Output */}
+      <CartDrawer 
+        isOpen={isCartDrawerOpen} 
+        onClose={() => setIsCartDrawerOpen(false)} 
+      />
 
       {/* Product Detail Modal */}
       <ProductModal 

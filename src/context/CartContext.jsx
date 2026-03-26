@@ -3,19 +3,17 @@ import React, { createContext, useContext, useState, useEffect } from 'react';
 const CartContext = createContext();
 
 export const CartProvider = ({ children }) => {
-  const [cart, setCart] = useState([]);
-
-  // Load cart from LocalStorage on mount
-  useEffect(() => {
-    const savedCart = localStorage.getItem('prysma_cart');
-    if (savedCart) {
-      try {
-        setCart(JSON.parse(savedCart));
-      } catch (e) {
-        console.error("Error parsing cart from storage", e);
-      }
+  // Lazy initializer: read localStorage synchronously on first render
+  // This prevents the race condition where an empty [] overwrites stored cart data
+  const [cart, setCart] = useState(() => {
+    try {
+      const savedCart = localStorage.getItem('prysma_cart');
+      return savedCart ? JSON.parse(savedCart) : [];
+    } catch (e) {
+      console.error("Error parsing cart from storage", e);
+      return [];
     }
-  }, []);
+  });
 
   // Save cart to LocalStorage on change
   useEffect(() => {

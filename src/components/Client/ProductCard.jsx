@@ -78,9 +78,10 @@ const ProductCard = ({ product, exchangeRate = 1, onOpenModal }) => {
           {quantityInCart === 0 ? (
             <button
               onClick={handleAddClick}
-              className="w-full py-3 bg-zinc-900 text-white rounded-xl font-black text-xs uppercase tracking-tighter flex items-center justify-center gap-2 hover:bg-zinc-800 active:scale-95 transition-all"
+              className="w-full py-3 bg-zinc-900 text-white rounded-xl font-black text-xs uppercase tracking-tighter flex items-center justify-center gap-2 hover:brightness-110 active:scale-95 transition-all shadow-md group"
+              style={{ backgroundColor: 'var(--secondary-color, #18181b)' }}
             >
-              <Plus size={16} strokeWidth={3} />
+              <Plus size={16} strokeWidth={3} className="group-hover:rotate-90 transition-transform" />
               Agregar
             </button>
           ) : (

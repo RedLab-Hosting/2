@@ -75,34 +75,17 @@ function AnimatedRoutes({ isGitHubPages }) {
           </TenantProvider>
         } />
 
-        {/* Multi-tenant Client Routes */}
-        <Route path="/:tenantSlug" element={
+        {/* Multi-tenant Client Routes (Shared CartProvider) */}
+        <Route path="/:tenantSlug/*" element={
           <TenantProvider>
             <CartProvider>
-              <PageWrapper><StorefrontView /></PageWrapper>
+              <Routes>
+                <Route path="" element={<PageWrapper><StorefrontView /></PageWrapper>} />
+                <Route path="cart" element={<PageWrapper><CartView /></PageWrapper>} />
+                <Route path="checkout" element={<PageWrapper><CheckoutView /></PageWrapper>} />
+                <Route path="order/:orderId" element={<PageWrapper><OrderTrackingView /></PageWrapper>} />
+              </Routes>
             </CartProvider>
-          </TenantProvider>
-        } />
-
-        <Route path="/:tenantSlug/cart" element={
-          <TenantProvider>
-            <CartProvider>
-              <PageWrapper><CartView /></PageWrapper>
-            </CartProvider>
-          </TenantProvider>
-        } />
-
-        <Route path="/:tenantSlug/checkout" element={
-          <TenantProvider>
-            <CartProvider>
-              <PageWrapper><CheckoutView /></PageWrapper>
-            </CartProvider>
-          </TenantProvider>
-        } />
-
-        <Route path="/:tenantSlug/order/:orderId" element={
-          <TenantProvider>
-            <PageWrapper><OrderTrackingView /></PageWrapper>
           </TenantProvider>
         } />
 
