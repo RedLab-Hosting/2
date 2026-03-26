@@ -1,8 +1,8 @@
 /**
  * Utility to generate a formatted WhatsApp message for orders.
  */
-export const generateWhatsAppMessage = (orderData, cart, totalUSD, totalBS, deliveryCostUSD = 0, exchangeRate = 1) => {
-  const { name, phone, deliveryType, address, paymentMethod, deliveryPaymentMethod } = orderData;
+export const generateWhatsAppMessage = (orderData, cart, finalTotalUSD, finalTotalBs) => {
+  const { name, phone, deliveryType, address, paymentMethod, deliveryPaymentMethod, deliveryCostUSD } = orderData;
   
   const paymentText = {
     'zelle': '🇺🇸 Zelle (Dólares)',
@@ -20,8 +20,6 @@ export const generateWhatsAppMessage = (orderData, cart, totalUSD, totalBS, deli
     return `*${item.quantity}x ${item.name}* (${item.price.toFixed(2)}$)\n${modifiersText}`;
   }).join('\n');
 
-  const deliveryCostBS = (deliveryCostUSD * exchangeRate).toFixed(2);
-
   let message = `
 *NUEVO PEDIDO - PRYSMA FAST FOOD* 🍔
 
@@ -34,21 +32,26 @@ export const generateWhatsAppMessage = (orderData, cart, totalUSD, totalBS, deli
 *Detalles del Pedido:*
 ${itemsText}
 
-💳 *Pago Comida:* ${foodPayText}
-*Subtotal:* ${totalUSD.toFixed(2)}$`;
+💳 *Pago Comida:* ${foodPayText}`;
 
   if (deliveryType === 'delivery' && deliveryCostUSD > 0) {
     message += `
-
-🚛 *Delivery:* ${deliveryCostUSD}$ / ${deliveryCostBS} Bs.
+🚛 *Costo Delivery:* ${deliveryCostUSD.toFixed(2)}$
 💳 *Pago Delivery:* ${deliveryPayText || 'No especificado'}`;
   }
 
   message += `
 
-*TOTAL A PAGAR:* 
-💰 *${(totalUSD + deliveryCostUSD).toFixed(2)}$*
-🇻🇪 *${totalBS.toFixed(2)} Bs.*
+*TOTAL A PAGAR:*`;
+
+  if (finalTotalUSD > 0) {
+    message += `\n💰 *${finalTotalUSD.toFixed(2)}$*`;
+  }
+  if (finalTotalBs > 0) {
+    message += `\n🇻🇪 *${finalTotalBs.toLocaleString('es-VE', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} Bs.*`;
+  }
+
+  message += `
 
 _Por favor, confirme la recepción indicando sus datos de pago._`;
 

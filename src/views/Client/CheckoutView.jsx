@@ -138,6 +138,30 @@ const CheckoutView = () => {
     setDeliveryCost(cost);
   }, [position, locationCaptured, deliveryType, tenant]);
 
+  // Dynamic totals based on selected payment methods
+  let finalTotalBs = 0;
+  let finalTotalUSD = 0;
+
+  if (foodPayment === 'pago_movil') {
+    finalTotalBs += cartTotalUSD * exchangeRate;
+  } else if (foodPayment) {
+    finalTotalUSD += cartTotalUSD;
+  } else {
+    finalTotalUSD += cartTotalUSD;
+    finalTotalBs += cartTotalUSD * exchangeRate;
+  }
+
+  if (deliveryType === 'delivery') {
+    if (deliveryPayment === 'pago_movil') {
+      finalTotalBs += deliveryCost * exchangeRate;
+    } else if (deliveryPayment) {
+      finalTotalUSD += deliveryCost;
+    } else {
+      finalTotalUSD += deliveryCost;
+      finalTotalBs += deliveryCost * exchangeRate;
+    }
+  }
+
   const totalUSD = cartTotalUSD + (deliveryType === 'delivery' ? deliveryCost : 0);
   const totalBS = totalUSD * exchangeRate;
 
@@ -164,6 +188,11 @@ const CheckoutView = () => {
   const handleSubmit = async (e) => {
     e.preventDefault();
     
+    if (!formData.firstName || !formData.lastName || !formData.phone) {
+      alert('Por favor completa todos tus datos personales (Nombre, Apellido y Teléfono).');
+      return;
+    }
+
     if (!foodPayment) {
       alert('Selecciona un método de pago para la comida.');
       return;
@@ -234,7 +263,7 @@ const CheckoutView = () => {
       deliveryPaymentMethod: deliveryPayment,
     };
 
-    const message = generateWhatsAppMessage(orderData, cart, cartTotalUSD, totalBS, deliveryCost, exchangeRate);
+    const message = generateWhatsAppMessage(orderData, cart, finalTotalUSD, finalTotalBs);
     
     openWhatsApp(tenant?.contact_info?.whatsapp || "584120000000", message);
     
@@ -359,7 +388,6 @@ const CheckoutView = () => {
               <div>
                 <label className="block text-xs font-bold text-zinc-500 uppercase tracking-wider mb-1 px-1">Nombre</label>
                 <input 
-                  required
                   type="text"
                   value={formData.firstName}
                   onChange={e => setFormData({...formData, firstName: e.target.value})}
@@ -370,7 +398,6 @@ const CheckoutView = () => {
               <div>
                 <label className="block text-xs font-bold text-zinc-500 uppercase tracking-wider mb-1 px-1">Apellido</label>
                 <input 
-                  required
                   type="text"
                   value={formData.lastName}
                   onChange={e => setFormData({...formData, lastName: e.target.value})}
@@ -382,7 +409,6 @@ const CheckoutView = () => {
             <div>
               <label className="block text-xs font-bold text-zinc-500 uppercase tracking-wider mb-1 px-1">Teléfono de Contacto</label>
               <input 
-                required
                 type="tel"
                 value={formData.phone}
                 onChange={e => setFormData({...formData, phone: e.target.value})}
@@ -412,7 +438,7 @@ const CheckoutView = () => {
                   <button 
                     type="button"
                     onClick={handleCaptureLocation}
-                    className="absolute bottom-4 right-4 z-20 bg-white py-2 px-4 rounded-full shadow-xl border border-zinc-200 hover:scale-105 active:scale-95 transition-all flex items-center gap-2 font-bold text-sm"
+                    className="absolute bottom-4 right-4 z-[1000] bg-white py-2 px-4 rounded-full shadow-xl border border-zinc-200 hover:scale-105 active:scale-95 transition-all flex items-center gap-2 font-bold text-sm"
                     style={{ color: 'var(--primary-color)' }}
                   >
                     <Navigation size={18} />
@@ -467,14 +493,17 @@ const CheckoutView = () => {
                 <span className="font-bold">${deliveryCost}</span>
               </div>
             )}
-            <div className="flex justify-between items-end pt-4">
+            <div className="flex justify-between items-end pt-4 border-t border-white/10 mt-4">
               <div>
                 <span className="block text-xs uppercase tracking-widest font-bold opacity-60">Total a pagar</span>
-                <span className="text-3xl font-bold">${totalUSD.toFixed(2)}</span>
               </div>
               <div className="text-right">
-                <span className="block text-xl font-bold">{totalBS.toLocaleString('es-VE', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} Bs.</span>
-                <span className="text-[10px] opacity-40">Tasa: {exchangeRate} Bs.</span>
+                {finalTotalUSD > 0 && (
+                  <span className="block text-3xl font-bold">${finalTotalUSD.toFixed(2)}</span>
+                )}
+                {finalTotalBs > 0 && (
+                  <span className="block text-xl font-bold">{finalTotalBs.toLocaleString('es-VE', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} Bs.</span>
+                )}
               </div>
             </div>
 

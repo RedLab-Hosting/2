@@ -168,10 +168,11 @@ const ProductModal = ({ product, isOpen, onClose, exchangeRate = 1 }) => {
 
               <button
                 onClick={handleAddToCart}
-                className="w-full py-4 px-6 bg-zinc-900 text-white rounded-xl font-bold flex items-center justify-between hover:bg-zinc-800 transition-all active:scale-[0.98]"
+                className="w-full py-4 px-6 bg-zinc-900 text-white rounded-xl font-bold flex items-center justify-between hover:brightness-110 shadow-md group transition-all active:scale-[0.98]"
+                style={{ backgroundColor: 'var(--secondary-color, #18181b)' }}
               >
                 <div className="flex items-center gap-2">
-                  <ShoppingCart size={20} />
+                  <ShoppingCart size={20} className="group-hover:translate-x-1 transition-transform" />
                   <span>Añadir</span>
                 </div>
                 <div className="text-right">
