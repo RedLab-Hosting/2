@@ -145,16 +145,26 @@ const DeliveryView = () => {
 
                     {/* Delivery cost */}
                     {payment.delivery_cost_usd > 0 && (
-                      <div className="flex justify-between text-sm font-bold">
-                        <span>Delivery:</span>
-                        <span>${payment.delivery_cost_usd}</span>
+                      <div className="flex justify-between items-center pt-3 border-t border-zinc-100 mt-2">
+                        <span className="font-bold text-sm text-primary" style={{ color: 'var(--primary-color)' }}>A cobrar (Delivery):</span>
+                        <div className="text-right">
+                          {payment.delivery_payment === 'pago_movil' ? (
+                            <span className="font-black text-xl text-zinc-900">
+                              {((payment.delivery_cost_usd || 0) * (payment.exchange_rate || 36.50)).toLocaleString('es-VE', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} Bs.
+                            </span>
+                          ) : (
+                            <span className="font-black text-xl text-zinc-900">
+                              ${payment.delivery_cost_usd.toFixed(2)}
+                            </span>
+                          )}
+                        </div>
                       </div>
                     )}
 
-                    {/* Total */}
-                    <div className="flex justify-between items-center pt-2 border-t border-zinc-100">
-                      <span className="font-bold text-sm">Total:</span>
-                      <span className="font-black text-lg">${order.total?.toFixed(2)}</span>
+                    {/* Total General (Ref) */}
+                    <div className="flex justify-between items-center pt-2">
+                      <span className="font-bold text-xs text-zinc-400">Total Pedido (Ref):</span>
+                      <span className="font-black text-sm text-zinc-400">${order.total?.toFixed(2)}</span>
                     </div>
 
                     {/* Action buttons */}

@@ -93,20 +93,8 @@ const CheckoutView = () => {
     }
   }, []);
 
-  // Request geolocation permission on mount
-  useEffect(() => {
-    if ('geolocation' in navigator) {
-      navigator.geolocation.getCurrentPosition(
-        (pos) => {
-          setPosition([pos.coords.latitude, pos.coords.longitude]);
-          setLocationCaptured(true);
-        },
-        (err) => {
-          console.log('Geolocation permission denied or unavailable:', err.message);
-        }
-      );
-    }
-  }, []);
+  // Removed auto-geolocation on mount to avoid browsers auto-denying 
+  // without explicit user interaction (fixes the blink bug).
 
   // Fetch exchange rate
   useEffect(() => {
@@ -171,7 +159,8 @@ const CheckoutView = () => {
     }
   }, [cartCount]);
 
-  const handleCaptureLocation = () => {
+  const handleCaptureLocation = (e) => {
+    e?.preventDefault();
     if ('geolocation' in navigator) {
       navigator.geolocation.getCurrentPosition(
         (pos) => {
@@ -179,8 +168,9 @@ const CheckoutView = () => {
           setLocationCaptured(true);
         },
         (err) => {
-          alert('No se pudo obtener tu ubicación. Asegúrate de dar permisos de ubicación.');
-        }
+          alert(`No se pudo obtener tu ubicación: ${err.message}. Asegúrate de dar permisos.`);
+        },
+        { enableHighAccuracy: true, timeout: 10000, maximumAge: 0 }
       );
     }
   };
@@ -188,92 +178,98 @@ const CheckoutView = () => {
   const handleSubmit = async (e) => {
     e.preventDefault();
     
-    if (!formData.firstName || !formData.lastName || !formData.phone) {
-      alert('Por favor completa todos tus datos personales (Nombre, Apellido y Teléfono).');
-      return;
-    }
-
-    if (!foodPayment) {
-      alert('Selecciona un método de pago para la comida.');
-      return;
-    }
-    if (deliveryType === 'delivery' && !deliveryPayment) {
-      alert('Selecciona un método de pago para el delivery.');
-      return;
-    }
-    
-    setIsSubmitting(true);
-
-    // Save client data to localStorage
-    const clientData = {
-      firstName: formData.firstName,
-      lastName: formData.lastName,
-      phone: formData.phone,
-    };
-    localStorage.setItem(STORAGE_KEY, JSON.stringify(clientData));
-
-    // Upsert customer to Supabase
     try {
-      if (tenant?.id && formData.phone) {
-        await customerService.upsertCustomer(
-          tenant.id,
-          formData.phone,
-          formData.firstName,
-          formData.lastName,
-          locationCaptured ? { lat: position[0], lng: position[1] } : null
-        );
+      if (!formData.firstName || !formData.lastName || !formData.phone) {
+        alert('Por favor completa todos tus datos personales (Nombre, Apellido y Teléfono).');
+        return;
       }
-    } catch (err) {
-      console.error('Error saving customer to Supabase:', err);
-    }
 
-    // Save order to Supabase
-    let savedOrder = null;
-    try {
-      const { orderService } = await import('../../api/orderService');
-      orderService.setTenantId(tenant.id);
-      savedOrder = await orderService.createOrder({
+      if (!foodPayment) {
+        alert('Selecciona un método de pago para la comida.');
+        return;
+      }
+      if (deliveryType === 'delivery' && !deliveryPayment) {
+        alert('Selecciona un método de pago para el delivery.');
+        return;
+      }
+      
+      setIsSubmitting(true);
+
+      // Save client data to localStorage
+      const clientData = {
         firstName: formData.firstName,
         lastName: formData.lastName,
         phone: formData.phone,
-        address: formData.address,
-        items: cart,
-        totalUSD,
-        subtotalUSD: cartTotalUSD,
-        deliveryCostUSD: deliveryType === 'delivery' ? deliveryCost : 0,
+      };
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(clientData));
+
+      // Upsert customer to Supabase
+      try {
+        if (tenant?.id && formData.phone) {
+          await customerService.upsertCustomer(
+            tenant.id,
+            formData.phone,
+            formData.firstName,
+            formData.lastName,
+            locationCaptured ? { lat: position[0], lng: position[1] } : null
+          );
+        }
+      } catch (err) {
+        console.error('Error saving customer to Supabase:', err);
+      }
+
+      // Save order to Supabase
+      let savedOrder = null;
+      try {
+        const { orderService } = await import('../../api/orderService');
+        orderService.setTenantId(tenant.id);
+        savedOrder = await orderService.createOrder({
+          firstName: formData.firstName,
+          lastName: formData.lastName,
+          phone: formData.phone,
+          address: formData.address,
+          items: cart,
+          totalUSD,
+          subtotalUSD: cartTotalUSD,
+          deliveryCostUSD: deliveryType === 'delivery' ? deliveryCost : 0,
+          deliveryType,
+          foodPayment,
+          deliveryPayment: deliveryType === 'delivery' ? deliveryPayment : null,
+          exchangeRate,
+        });
+      } catch (err) {
+        console.error('Error saving order:', err);
+        alert('Error al guardar el pedido. Intenta de nuevo. ' + err.message);
+        setIsSubmitting(false);
+        return;
+      }
+
+      const orderData = {
+        name: `${formData.firstName} ${formData.lastName}`.trim(),
+        phone: formData.phone,
         deliveryType,
-        foodPayment,
-        deliveryPayment: deliveryType === 'delivery' ? deliveryPayment : null,
-        exchangeRate,
-      });
-    } catch (err) {
-      console.error('Error saving order:', err);
-      alert('Error al guardar el pedido. Intenta de nuevo.');
+        address: formData.address,
+        deliveryCostUSD: deliveryType === 'delivery' ? deliveryCost : 0,
+        paymentMethod: foodPayment,
+        deliveryPaymentMethod: deliveryPayment,
+      };
+
+      const message = generateWhatsAppMessage(orderData, cart, finalTotalUSD, finalTotalBs);
+      
+      openWhatsApp(tenant?.contact_info?.whatsapp || "584120000000", message);
+      
+      // Navigate to order tracking
+      if (savedOrder?.id) {
+        clearCart();
+        navigate(`/${tenant?.slug || 'default'}/order/${savedOrder.id}`);
+      }
+      
       setIsSubmitting(false);
-      return;
+    } catch (criticalErr) {
+      console.error('Critical submit error', criticalErr);
+      alert('Error crítico: ' + criticalErr.message);
+      setIsSubmitting(false);
     }
-
-    const orderData = {
-      name: `${formData.firstName} ${formData.lastName}`.trim(),
-      phone: formData.phone,
-      deliveryType,
-      address: formData.address,
-      deliveryCostUSD: deliveryType === 'delivery' ? deliveryCost : 0,
-      paymentMethod: foodPayment,
-      deliveryPaymentMethod: deliveryPayment,
-    };
-
-    const message = generateWhatsAppMessage(orderData, cart, finalTotalUSD, finalTotalBs);
-    
-    openWhatsApp(tenant?.contact_info?.whatsapp || "584120000000", message);
-    
-    // Navigate to order tracking
-    if (savedOrder?.id) {
-      clearCart();
-      navigate(`/${tenant?.slug || 'default'}/order/${savedOrder.id}`);
-    }
-    
-    setIsSubmitting(false);
   };
 
   // Payment method buttons component (reusable for food and delivery)

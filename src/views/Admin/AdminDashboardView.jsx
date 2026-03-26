@@ -363,9 +363,24 @@ const AdminDashboardView = () => {
               {orders.filter(o => o.status === orderStatusFilter).map(order => {
                 const customer = order.customer_data || {};
                 const itemsCount = order.items?.reduce((acc, item) => acc + item.quantity, 0) || 0;
-                const totalUSD = order.payment_data?.subtotal_usd + (order.payment_data?.delivery_cost_usd || 0) || order.total || 0;
-                const totalBS = totalUSD * (order.payment_data?.exchange_rate || exchangeRate.rate);
+                const pData = order.payment_data || {};
+                const exchange = pData.exchange_rate || exchangeRate.rate;
                 
+                let finalBs = 0;
+                let finalUSD = 0;
+                
+                // Compatibility fallback
+                if (!pData.food_payment) {
+                   finalUSD = (pData.subtotal_usd || 0) + (pData.delivery_cost_usd || 0) || order.total || 0;
+                   finalBs = finalUSD * exchange;
+                } else {
+                   if (pData.food_payment === 'pago_movil') finalBs += (pData.subtotal_usd || 0) * exchange;
+                   else finalUSD += (pData.subtotal_usd || 0);
+                   
+                   if (pData.delivery_payment === 'pago_movil') finalBs += (pData.delivery_cost_usd || 0) * exchange;
+                   else finalUSD += (pData.delivery_cost_usd || 0);
+                }
+
                 return (
                   <div key={order.id} className="bg-white p-6 rounded-3xl border border-zinc-100 flex flex-col md:flex-row items-center justify-between group hover:border-primary transition-all">
                     <div 
@@ -389,8 +404,8 @@ const AdminDashboardView = () => {
                     
                     <div className="flex items-center justify-between md:justify-end gap-10 w-full md:w-auto mt-6 md:mt-0 pt-4 md:pt-0 border-t md:border-t-0 border-zinc-50">
                       <div className="text-right">
-                        <div className="font-black text-2xl text-zinc-900">${totalUSD.toFixed(2)}</div>
-                        <div className="text-[10px] text-zinc-400 font-bold uppercase tracking-[0.2em]">{totalBS.toLocaleString('es-VE', {minimumFractionDigits: 2, maximumFractionDigits: 2})} Bs.</div>
+                        {finalUSD > 0 && <div className="font-black text-2xl text-zinc-900">${finalUSD.toFixed(2)}</div>}
+                        {finalBs > 0 && <div className={`font-bold uppercase tracking-[0.2em] ${finalUSD > 0 ? 'text-[10px] text-zinc-400' : 'text-xl text-zinc-900'}`}>{finalBs.toLocaleString('es-VE', {minimumFractionDigits: 2, maximumFractionDigits: 2})} Bs.</div>}
                       </div>
                       
                       <div className="flex flex-col items-end gap-2">
