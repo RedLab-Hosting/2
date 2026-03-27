@@ -140,7 +140,7 @@ const DeliveryView = () => {
   const collectionAmount = getCollectionAmount(activeOrder);
 
   return (
-    <div className="h-[100dvh] w-full relative bg-zinc-900 overflow-hidden font-sans flex flex-col">
+    <div className="h-dvh w-full relative bg-zinc-900 overflow-hidden font-sans flex flex-col">
       {/* 1. Map Background */}
       <div className="absolute inset-0 z-0">
         <MapContainer 
@@ -165,7 +165,7 @@ const DeliveryView = () => {
         </MapContainer>
         
         {/* Map gradient overlay so UI elements pop */}
-        <div className="absolute inset-0 bg-gradient-to-b from-black/40 via-transparent to-black/30 pointer-events-none z-[5]" />
+        <div className="absolute inset-0 bg-linear-to-b from-black/40 via-transparent to-black/30 pointer-events-none z-10" />
       </div>
 
       {/* 2. Top App Bar */}

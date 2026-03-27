@@ -890,7 +890,7 @@ const AdminDashboardView = () => {
                       <button
                         type="button"
                         onClick={handleCaptureStoreLocation}
-                        className="absolute bottom-4 right-4 z-[1000] bg-white py-2 px-4 rounded-full shadow-xl border border-zinc-200 hover:scale-[1.05] active:scale-95 transition-all flex items-center gap-2 font-bold text-sm"
+                        className="absolute bottom-4 right-4 z-1000 bg-white py-2 px-4 rounded-full shadow-xl border border-zinc-200 hover:scale-[1.05] active:scale-95 transition-all flex items-center gap-2 font-bold text-sm"
                         style={{ color: 'var(--primary-color)' }}
                       >
                         <Navigation size={18} />
