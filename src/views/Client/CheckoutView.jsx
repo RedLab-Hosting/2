@@ -159,20 +159,35 @@ const CheckoutView = () => {
     }
   }, [cartCount]);
 
-  const handleCaptureLocation = (e) => {
+  const handleCaptureLocation = async (e) => {
     e?.preventDefault();
-    if ('geolocation' in navigator) {
-      navigator.geolocation.getCurrentPosition(
-        (pos) => {
-          setPosition([pos.coords.latitude, pos.coords.longitude]);
-          setLocationCaptured(true);
-        },
-        (err) => {
-          alert(`No se pudo obtener tu ubicación: ${err.message}. Asegúrate de dar permisos.`);
-        },
-        { enableHighAccuracy: true, timeout: 10000, maximumAge: 0 }
-      );
+    if (!('geolocation' in navigator)) {
+      alert("Tu navegador no soporta geolocalización o estás en una conexión insegura HTTP.");
+      return;
     }
+
+    try {
+      if (navigator.permissions && navigator.permissions.query) {
+        const result = await navigator.permissions.query({ name: 'geolocation' });
+        if (result.state === 'denied') {
+          alert("Los permisos de ubicación están bloqueados en tu navegador. Actívalos en Ajustes o mueve el pin en el mapa manualmente.");
+          return;
+        }
+      }
+    } catch (ignoreErr) {
+      // old browsers
+    }
+
+    navigator.geolocation.getCurrentPosition(
+      (pos) => {
+        setPosition([pos.coords.latitude, pos.coords.longitude]);
+        setLocationCaptured(true);
+      },
+      (err) => {
+        alert(`No pudimos acceder a la ubicación. Intenta marcándola directamente en el mapa (Error: ${err.message})`);
+      },
+      { enableHighAccuracy: false, timeout: 15000, maximumAge: 60000 }
+    );
   };
 
   const handleSubmit = async (e) => {
