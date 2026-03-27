@@ -444,21 +444,21 @@ const CheckoutView = () => {
                 <h2 className="text-xl font-bold mb-2">Ubicación de Entrega</h2>
                 <p className="text-sm text-zinc-500 mb-4">Selecciona tu ubicación en el mapa o usa el botón para obtener tu ubicación actual.</p>
                 
+                <button 
+                  type="button"
+                  onClick={handleCaptureLocation}
+                  className="w-full mb-4 py-4 rounded-2xl font-black text-sm uppercase tracking-widest flex items-center justify-center gap-3 transition-all shadow-md hover:shadow-lg active:scale-[0.98]"
+                  style={{ backgroundColor: 'var(--primary-color, #ea580c)', color: 'white' }}
+                >
+                  <Navigation size={20} />
+                  Obtener mi ubicación principal
+                </button>
+
                 <div className="h-64 rounded-2xl overflow-hidden border border-zinc-200 relative z-10">
                   <MapContainer center={position} zoom={13} style={{ height: '100%', width: '100%' }}>
                     <TileLayer url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png" />
                     <LocationPicker position={position} setPosition={(pos) => { setPosition(pos); setLocationCaptured(true); }} />
                   </MapContainer>
-                  
-                  <button 
-                    type="button"
-                    onClick={handleCaptureLocation}
-                    className="absolute bottom-4 right-4 z-[1000] bg-white py-2 px-4 rounded-full shadow-xl border border-zinc-200 hover:scale-105 active:scale-95 transition-all flex items-center gap-2 font-bold text-sm"
-                    style={{ color: 'var(--primary-color)' }}
-                  >
-                    <Navigation size={18} />
-                    Mi ubicación
-                  </button>
                 </div>
 
                 {/* Delivery cost display */}

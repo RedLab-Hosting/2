@@ -9,6 +9,29 @@ import { supabase } from '../../api/supabase';
 import { motion, AnimatePresence } from 'framer-motion';
 import ProductModal from '../../components/Admin/ProductModal';
 import ReceiptTicket from '../../components/Common/ReceiptTicket';
+import { MapContainer, TileLayer, Marker, useMapEvents } from 'react-leaflet';
+import 'leaflet/dist/leaflet.css';
+
+import L from 'leaflet';
+import icon from 'leaflet/dist/images/marker-icon.png';
+import iconShadow from 'leaflet/dist/images/marker-shadow.png';
+
+let DefaultIcon = L.icon({
+    iconUrl: icon,
+    shadowUrl: iconShadow,
+    iconSize: [25, 41],
+    iconAnchor: [12, 41]
+});
+L.Marker.prototype.options.icon = DefaultIcon;
+
+const LocationPicker = ({ position, setPosition }) => {
+  useMapEvents({
+    click(e) {
+      setPosition([e.latlng.lat, e.latlng.lng]);
+    },
+  });
+  return position ? <Marker position={position} /> : null;
+};
 
 const AdminDashboardView = () => {
   const { tenant, productService, orderService } = useTenant();
@@ -748,34 +771,30 @@ const AdminDashboardView = () => {
                   </div>
 
                   <div>
-                    <label className="text-[10px] font-black text-zinc-500 uppercase tracking-widest mb-2 block">Coordenadas de la Tienda</label>
-                    <div className="grid grid-cols-2 gap-4">
-                      <input 
-                        type="number" 
-                        step="0.0001"
-                        value={deliveryConfig.storeLat}
-                        onChange={(e) => setDeliveryConfig({...deliveryConfig, storeLat: e.target.value})}
-                        className="w-full bg-white border border-zinc-100 p-3 rounded-xl outline-none focus:ring-2 focus:ring-primary font-bold text-sm"
-                        placeholder="Latitud"
-                      />
-                      <input 
-                        type="number" 
-                        step="0.0001"
-                        value={deliveryConfig.storeLng}
-                        onChange={(e) => setDeliveryConfig({...deliveryConfig, storeLng: e.target.value})}
-                        className="w-full bg-white border border-zinc-100 p-3 rounded-xl outline-none focus:ring-2 focus:ring-primary font-bold text-sm"
-                        placeholder="Longitud"
-                      />
+                    <label className="text-[10px] font-black text-zinc-500 uppercase tracking-widest mb-2 block">Ubicación de la Tienda</label>
+                    <div className="h-64 rounded-2xl overflow-hidden border border-zinc-200 relative z-10">
+                      <MapContainer 
+                        center={deliveryConfig.storeLat && deliveryConfig.storeLng ? [deliveryConfig.storeLat, deliveryConfig.storeLng] : [10.4806, -66.9036]} 
+                        zoom={13} 
+                        style={{ height: '100%', width: '100%' }}
+                      >
+                        <TileLayer url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png" />
+                        <LocationPicker 
+                          position={deliveryConfig.storeLat && deliveryConfig.storeLng ? [deliveryConfig.storeLat, deliveryConfig.storeLng] : null} 
+                          setPosition={(pos) => setDeliveryConfig({...deliveryConfig, storeLat: pos[0], storeLng: pos[1]})} 
+                        />
+                      </MapContainer>
+                      
+                      <button
+                        type="button"
+                        onClick={handleCaptureStoreLocation}
+                        className="absolute bottom-4 right-4 z-[1000] bg-white py-2 px-4 rounded-full shadow-xl border border-zinc-200 hover:scale-[1.05] active:scale-95 transition-all flex items-center gap-2 font-bold text-sm"
+                        style={{ color: 'var(--primary-color)' }}
+                      >
+                        <Navigation size={18} />
+                        Ubicación Actual
+                      </button>
                     </div>
-                    <button
-                      type="button"
-                      onClick={handleCaptureStoreLocation}
-                      className="mt-3 flex items-center gap-2 px-4 py-2 bg-white border border-zinc-200 rounded-xl text-sm font-bold hover:border-primary transition-all"
-                      style={{ color: 'var(--primary-color)' }}
-                    >
-                      <Navigation size={16} />
-                      Obtener ubicación actual
-                    </button>
                   </div>
                 </div>
               </div>
