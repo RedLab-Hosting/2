@@ -1,33 +1,79 @@
 import React, { useState } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { motion } from 'framer-motion';
-import { LogIn, Mail, Lock, AlertCircle, Loader2, ArrowLeft } from 'lucide-react';
+import { LogIn, Mail, Lock, AlertCircle, Loader2, ArrowLeft, UserPlus, CheckCircle2 } from 'lucide-react';
 import { useAuth } from '../../context/AuthContext';
 import { useTenant } from '../../context/TenantContext';
+import { supabase } from '../../api/supabase';
 
 const LoginView = () => {
   const { tenantSlug } = useParams();
   const navigate = useNavigate();
-  const { login, loginAsDebug } = useAuth();
+  const { login, loginAsDebug, logout, registerDelivery } = useAuth();
   const { tenant } = useTenant();
+  
+  const [mode, setMode] = useState('login'); // 'login' or 'register'
   
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
+  const [name, setName] = useState('');
+  const [phone, setPhone] = useState('');
+  
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
+  const [successMsg, setSuccessMsg] = useState(null);
 
   const handleLogin = async (e) => {
     e.preventDefault();
     setLoading(true);
     setError(null);
+    setSuccessMsg(null);
 
     try {
       await login(email, password);
-      // After login, we could check roles, but for now redirecting to admin
-      navigate(`/${tenantSlug}/admin`);
+      
+      const { data: { user } } = await supabase.auth.getUser();
+      const { data: profile } = await supabase
+        .from('profiles')
+        .select('role, is_active')
+        .eq('id', user.id)
+        .single();
+        
+      if (profile?.role === 'delivery') {
+        if (!profile.is_active) {
+          setError('Tu cuenta de repartidor está pendiente de aprobación por el comercio.');
+          await logout();
+          return;
+        }
+        navigate(`/${tenantSlug}/delivery`);
+      } else {
+        navigate(`/${tenantSlug}/admin`);
+      }
     } catch (err) {
       console.error('Login error:', err);
       setError('Credenciales inválidas. Por favor intenta de nuevo.');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleRegister = async (e) => {
+    e.preventDefault();
+    setLoading(true);
+    setError(null);
+    setSuccessMsg(null);
+
+    try {
+      await registerDelivery(email, password, name, phone, tenant?.id);
+      setSuccessMsg('Registro exitoso. Espera a que el administrador apruebe tu cuenta para poder ingresar.');
+      setMode('login');
+      setEmail('');
+      setPassword('');
+      setName('');
+      setPhone('');
+    } catch(err) {
+      console.error('Register error:', err);
+      setError(err.message || 'Error al registrarte. Intenta de nuevo.');
     } finally {
       setLoading(false);
     }
@@ -58,11 +104,26 @@ const LoginView = () => {
               {tenant?.name || 'Prysma'}
             </h1>
             <p className="text-zinc-500 dark:text-zinc-400 font-medium text-sm">
-              Accede a tu panel de gestión
+              {mode === 'login' ? 'Accede a tu panel de gestión' : 'Únete como Repartidor'}
             </p>
           </div>
 
-          <form onSubmit={handleLogin} className="space-y-5">
+          <div className="flex bg-zinc-100 dark:bg-zinc-800 p-1 rounded-2xl mb-6">
+            <button
+              onClick={() => { setMode('login'); setError(null); setSuccessMsg(null); }}
+              className={`flex-1 py-2 text-sm font-bold rounded-xl transition-all ${mode === 'login' ? 'bg-white dark:bg-zinc-900 shadow-sm text-zinc-900 dark:text-white' : 'text-zinc-500 hover:text-zinc-900'}`}
+            >
+              Iniciar Sesión
+            </button>
+            <button
+              onClick={() => { setMode('register'); setError(null); setSuccessMsg(null); }}
+              className={`flex-1 py-2 text-sm font-bold rounded-xl transition-all ${mode === 'register' ? 'bg-white dark:bg-zinc-900 shadow-sm text-zinc-900 dark:text-white' : 'text-zinc-500 hover:text-zinc-900'}`}
+            >
+              Registro Delivery
+            </button>
+          </div>
+
+          <form onSubmit={mode === 'login' ? handleLogin : handleRegister} className="space-y-5">
             {error && (
               <motion.div 
                 initial={{ opacity: 0, x: -10 }}
@@ -72,6 +133,44 @@ const LoginView = () => {
                 <AlertCircle size={18} />
                 {error}
               </motion.div>
+            )}
+            
+            {successMsg && (
+              <motion.div 
+                initial={{ opacity: 0, x: -10 }}
+                animate={{ opacity: 1, x: 0 }}
+                className="bg-emerald-50 dark:bg-emerald-500/10 border border-emerald-200 dark:border-emerald-500/20 p-4 rounded-xl flex items-center gap-3 text-emerald-600 dark:text-emerald-400 text-sm font-medium"
+              >
+                <CheckCircle2 size={18} />
+                {successMsg}
+              </motion.div>
+            )}
+
+            {mode === 'register' && (
+              <>
+                <div className="space-y-2">
+                  <label className="text-xs font-black text-zinc-500 dark:text-zinc-400 uppercase ml-1">Nombre Completo</label>
+                  <input 
+                    type="text" 
+                    value={name}
+                    onChange={(e) => setName(e.target.value)}
+                    placeholder="Ej. Juan Pérez"
+                    required
+                    className="w-full px-4 py-4 bg-zinc-100 dark:bg-zinc-800 border-2 border-transparent focus:border-primary focus:bg-white dark:focus:bg-zinc-800 text-zinc-900 dark:text-white rounded-2xl outline-none transition-all font-medium placeholder:text-zinc-400"
+                  />
+                </div>
+                <div className="space-y-2">
+                  <label className="text-xs font-black text-zinc-500 dark:text-zinc-400 uppercase ml-1">Teléfono</label>
+                  <input 
+                    type="tel" 
+                    value={phone}
+                    onChange={(e) => setPhone(e.target.value)}
+                    placeholder="Ej. 04141234567"
+                    required
+                    className="w-full px-4 py-4 bg-zinc-100 dark:bg-zinc-800 border-2 border-transparent focus:border-primary focus:bg-white dark:focus:bg-zinc-800 text-zinc-900 dark:text-white rounded-2xl outline-none transition-all font-medium placeholder:text-zinc-400"
+                  />
+                </div>
+              </>
             )}
 
             <div className="space-y-2">
@@ -84,10 +183,9 @@ const LoginView = () => {
                   type="email" 
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
-                  placeholder="admin@ejemplo.com"
+                  placeholder="ejemplo@correo.com"
                   required
                   className="w-full pl-12 pr-4 py-4 bg-zinc-100 dark:bg-zinc-800 border-2 border-transparent focus:border-primary focus:bg-white dark:focus:bg-zinc-800 text-zinc-900 dark:text-white rounded-2xl outline-none transition-all font-medium placeholder:text-zinc-400"
-                  style={{ '--tw-border-opacity': '1', borderColor: 'transparent' }}
                 />
               </div>
             </div>
@@ -118,12 +216,12 @@ const LoginView = () => {
               {loading ? (
                 <>
                   <Loader2 size={20} className="animate-spin" />
-                  Iniciando sesión...
+                  {mode === 'login' ? 'Iniciando sesión...' : 'Registrando...'}
                 </>
               ) : (
                 <>
-                  <LogIn size={20} />
-                  Entrar al Panel
+                  {mode === 'login' ? <LogIn size={20} /> : <UserPlus size={20} />}
+                  {mode === 'login' ? 'Entrar al Panel' : 'Crear Cuenta'}
                 </>
               )}
             </button>

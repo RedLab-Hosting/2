@@ -144,6 +144,16 @@ const AdminDashboardView = () => {
     }
   };
 
+  const toggleDriverActive = async (id, currentStatus) => {
+    try {
+      const newStatus = !currentStatus;
+      await supabase.from('profiles').update({ is_active: newStatus }).eq('id', id);
+      setDeliveryDrivers(drivers => drivers.map(d => d.id === id ? { ...d, is_active: newStatus } : d));
+    } catch (err) {
+      alert("Error actualizando estado del repartidor: " + err.message);
+    }
+  };
+
   const handleSyncRate = async () => {
     if (!tenant?.id) return;
     try {
@@ -277,6 +287,7 @@ const AdminDashboardView = () => {
             { id: 'entregados', label: 'Entregados' }
           ]},
           { id: 'productos', label: 'Productos', icon: Package },
+          { id: 'equipo', label: 'Equipo', icon: UserPlus },
           { id: 'config', label: 'Configuración', icon: Settings },
           { id: 'reportes', label: 'Reportes', icon: BarChart3 }
         ].map(item => (
@@ -482,8 +493,8 @@ const AdminDashboardView = () => {
                               defaultValue=""
                             >
                               <option value="" disabled>Asignar Motorizado</option>
-                              {deliveryDrivers.map(d => (
-                                <option key={d.id} value={d.id}>{d.first_name || d.email}</option>
+                              {deliveryDrivers.filter(d => d.is_active).map(d => (
+                                <option key={d.id} value={d.id}>{d.name || d.first_name || d.email || 'Repartidor'}</option>
                               ))}
                             </select>
                           )}
@@ -650,6 +661,75 @@ const AdminDashboardView = () => {
                           </div>
                         </td>
                       </tr>
+                    )}
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          </motion.div>
+        )}
+
+        {activeTab === 'equipo' && (
+          <motion.div initial={{ opacity: 0, x: 20 }} animate={{ opacity: 1, x: 0 }}>
+            <header className="mb-10 flex flex-col md:flex-row md:items-end justify-between gap-4">
+              <div>
+                <h1 className="text-4xl font-black text-zinc-900 tracking-tighter mb-2">Equipo Delivery</h1>
+                <p className="text-zinc-500 font-medium">Gestiona el personal motorizado y aprueba su ingreso al sistema.</p>
+              </div>
+            </header>
+
+            <div className="bg-white rounded-[32px] border border-zinc-100 overflow-hidden">
+              <div className="overflow-x-auto">
+                <table className="w-full text-left">
+                  <thead className="bg-zinc-50/50 border-b border-zinc-100">
+                    <tr>
+                      <th className="p-6 text-[10px] font-black uppercase tracking-[0.2em] text-zinc-400 whitespace-nowrap">Repartidor</th>
+                      <th className="p-6 text-[10px] font-black uppercase tracking-[0.2em] text-zinc-400 whitespace-nowrap">Contacto</th>
+                      <th className="p-6 text-[10px] font-black uppercase tracking-[0.2em] text-zinc-400 text-right whitespace-nowrap">Estado / Acción</th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-zinc-50">
+                    {deliveryDrivers.length === 0 ? (
+                      <tr>
+                        <td colSpan="3" className="p-20 text-center opacity-20">
+                          <UserPlus size={64} className="mx-auto mb-4" />
+                          <p className="font-black uppercase tracking-[0.2em] text-sm">No hay repartidores registrados</p>
+                        </td>
+                      </tr>
+                    ) : (
+                      deliveryDrivers.map(driver => (
+                        <tr key={driver.id} className="hover:bg-zinc-50/50 transition-colors group">
+                          <td className="p-6">
+                            <div className="flex items-center gap-4">
+                              <div className="w-12 h-12 bg-zinc-100 rounded-2xl flex items-center justify-center font-black text-zinc-400 text-lg border border-zinc-200 uppercase">
+                                {(driver.name || driver.email || 'D')[0]}
+                              </div>
+                              <span className="font-black text-zinc-900 block text-lg">{driver.name || driver.first_name || 'Sin Nombre'}</span>
+                            </div>
+                          </td>
+                          <td className="p-6">
+                            <span className="text-zinc-500 font-mono font-medium">{driver.phone || driver.email || 'N/A'}</span>
+                          </td>
+                          <td className="p-6 text-right">
+                            <button 
+                              onClick={() => toggleDriverActive(driver.id, driver.is_active)}
+                              className={`px-6 py-3 rounded-2xl text-[10px] font-black uppercase tracking-[0.2em] transition-all transform active:scale-95 flex items-center gap-2 ml-auto ${
+                                driver.is_active 
+                                  ? 'bg-emerald-50 text-emerald-600 hover:bg-rose-50 hover:text-rose-600 hover:border-rose-100 border border-emerald-100' 
+                                  : 'bg-rose-50 text-rose-600 hover:bg-emerald-50 hover:text-emerald-600 hover:border-emerald-100 border border-rose-100'
+                              }`}
+                            >
+                              <div className={`w-2 h-2 rounded-full ${driver.is_active ? 'bg-emerald-500 group-hover:bg-rose-500' : 'bg-rose-500 group-hover:bg-emerald-500'}`} />
+                              {driver.is_active ? 'Activo' : 'Inactivo'}
+                            </button>
+                            {driver.is_active ? (
+                               <p className="text-[9px] text-zinc-400 font-bold uppercase tracking-widest mt-2">Haz clic para Suspender</p>
+                            ) : (
+                               <p className="text-[9px] text-orange-400 font-bold uppercase tracking-widest mt-2">Haz clic para Aprobar</p>
+                            )}
+                          </td>
+                        </tr>
+                      ))
                     )}
                   </tbody>
                 </table>

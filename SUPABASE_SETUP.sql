@@ -62,8 +62,16 @@ CREATE TABLE IF NOT EXISTS profiles (
     tenant_id UUID REFERENCES tenants(id), -- Null for superadmins
     role TEXT CHECK (role IN ('superadmin', 'admin', 'delivery', 'client')),
     name TEXT,
+    phone TEXT,
+    is_active BOOLEAN DEFAULT false,
     created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
 );
+
+ALTER TABLE profiles ENABLE ROW LEVEL SECURITY;
+
+-- Ensure columns exist if table was already created
+ALTER TABLE profiles ADD COLUMN IF NOT EXISTS phone TEXT;
+ALTER TABLE profiles ADD COLUMN IF NOT EXISTS is_active BOOLEAN DEFAULT false;
 
 ALTER TABLE profiles ENABLE ROW LEVEL SECURITY;
 
