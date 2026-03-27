@@ -63,6 +63,28 @@ const AdminDashboardView = () => {
   useEffect(() => {
     if (tenant) {
       loadAdminData();
+
+      // Real-time subscription for new/updated orders
+      const channel = supabase
+        .channel(`admin-orders-${tenant.id}`)
+        .on('postgres_changes', {
+          event: '*',
+          schema: 'public',
+          table: 'orders',
+          filter: `tenant_id=eq.${tenant.id}`,
+        }, (payload) => {
+          setOrders(currentOrders => {
+            if (payload.eventType === 'INSERT') {
+              return [payload.new, ...currentOrders];
+            } else if (payload.eventType === 'UPDATE') {
+              return currentOrders.map(o => o.id === payload.new.id ? payload.new : o);
+            }
+            return currentOrders;
+          });
+        })
+        .subscribe();
+
+      return () => supabase.removeChannel(channel);
     }
   }, [tenant]);
 
