@@ -1,14 +1,17 @@
 /**
  * Utility to generate a formatted WhatsApp message for orders.
  */
-export const generateWhatsAppMessage = (orderData, cart, totalUSD, totalBS) => {
-  const { name, phone, deliveryType, address, deliveryCostUSD, paymentMethod } = orderData;
+export const generateWhatsAppMessage = (orderData, cart, finalTotalUSD, finalTotalBs) => {
+  const { name, phone, deliveryType, address, paymentMethod, deliveryPaymentMethod, deliveryCostUSD } = orderData;
   
   const paymentText = {
     'zelle': '🇺🇸 Zelle (Dólares)',
     'pago_movil': '🇻🇪 Pago Móvil (Bolívares)',
     'cash': '💵 Efectivo'
-  }[paymentMethod] || 'No especificado';
+  };
+
+  const foodPayText = paymentText[paymentMethod] || 'No especificado';
+  const deliveryPayText = deliveryPaymentMethod ? (paymentText[deliveryPaymentMethod] || 'No especificado') : null;
 
   const itemsText = cart.map(item => {
     const modifiersText = item.selectedModifiers 
@@ -17,7 +20,7 @@ export const generateWhatsAppMessage = (orderData, cart, totalUSD, totalBS) => {
     return `*${item.quantity}x ${item.name}* (${item.price.toFixed(2)}$)\n${modifiersText}`;
   }).join('\n');
 
-  const message = `
+  let message = `
 *NUEVO PEDIDO - PRYSMA FAST FOOD* 🍔
 
 *Datos del Cliente:*
@@ -25,21 +28,34 @@ export const generateWhatsAppMessage = (orderData, cart, totalUSD, totalBS) => {
 📞 Teléfono: ${phone}
 🚚 Tipo: ${deliveryType === 'delivery' ? 'Delivery' : 'Retiro en Tienda'}
 📍 Dirección: ${address || 'N/A'}
-💳 Pago: ${paymentText}
 
 *Detalles del Pedido:*
 ${itemsText}
 
-*Subtotal:* ${totalUSD.toFixed(2)}$
-*Delivery:* ${deliveryCostUSD ? deliveryCostUSD.toFixed(2) + '$' : 'Gratis'}
-*TOTAL A PAGAR:* 
-💰 *${(totalUSD + (deliveryCostUSD || 0)).toFixed(2)}$*
-🇻🇪 *${totalBS.toFixed(2)} Bs.*
+💳 *Pago Comida:* ${foodPayText}`;
 
-_Por favor, confirme la recepción indicando sus datos de pago._
-  `.trim();
+  if (deliveryType === 'delivery' && deliveryCostUSD > 0) {
+    message += `
+🚛 *Costo Delivery:* ${deliveryCostUSD.toFixed(2)}$
+💳 *Pago Delivery:* ${deliveryPayText || 'No especificado'}`;
+  }
 
-  return encodeURIComponent(message);
+  message += `
+
+*TOTAL A PAGAR:*`;
+
+  if (finalTotalUSD > 0) {
+    message += `\n💰 *${finalTotalUSD.toFixed(2)}$*`;
+  }
+  if (finalTotalBs > 0) {
+    message += `\n🇻🇪 *${finalTotalBs.toLocaleString('es-VE', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} Bs.*`;
+  }
+
+  message += `
+
+_Por favor, confirme la recepción indicando sus datos de pago._`;
+
+  return encodeURIComponent(message.trim());
 };
 
 export const openWhatsApp = (phone, message) => {

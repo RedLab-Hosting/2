@@ -62,8 +62,16 @@ CREATE TABLE IF NOT EXISTS profiles (
     tenant_id UUID REFERENCES tenants(id), -- Null for superadmins
     role TEXT CHECK (role IN ('superadmin', 'admin', 'delivery', 'client')),
     name TEXT,
+    phone TEXT,
+    is_active BOOLEAN DEFAULT false,
     created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
 );
+
+ALTER TABLE profiles ENABLE ROW LEVEL SECURITY;
+
+-- Ensure columns exist if table was already created
+ALTER TABLE profiles ADD COLUMN IF NOT EXISTS phone TEXT;
+ALTER TABLE profiles ADD COLUMN IF NOT EXISTS is_active BOOLEAN DEFAULT false;
 
 ALTER TABLE profiles ENABLE ROW LEVEL SECURITY;
 
@@ -124,6 +132,21 @@ CREATE TABLE IF NOT EXISTS exchange_rates (
 
 ALTER TABLE exchange_rates ENABLE ROW LEVEL SECURITY;
 
+-- 7. Customers Table (per tenant, phone as unique ID)
+CREATE TABLE IF NOT EXISTS customers (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    tenant_id UUID REFERENCES tenants(id) ON DELETE CASCADE,
+    phone TEXT NOT NULL,
+    first_name TEXT,
+    last_name TEXT,
+    last_location JSONB,
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
+    UNIQUE(tenant_id, phone)
+);
+
+ALTER TABLE customers ENABLE ROW LEVEL SECURITY;
+
+
 -- Help functions (Using CREATE OR REPLACE)
 CREATE OR REPLACE FUNCTION is_superadmin()
 RETURNS BOOLEAN AS $$
@@ -150,17 +173,20 @@ BEGIN
     -- Exchange Rates
     DROP POLICY IF EXISTS "Public can see exchange rate for tenant" ON exchange_rates;
     DROP POLICY IF EXISTS "Admins can manage exchange rates" ON exchange_rates;
+    DROP POLICY IF EXISTS "DEBUG_Allow anon to manage exchange rates" ON exchange_rates;
     
     -- Tenants
     DROP POLICY IF EXISTS "SuperAdmins can do everything on tenants" ON tenants;
     DROP POLICY IF EXISTS "Users can see their own tenant" ON tenants;
     DROP POLICY IF EXISTS "Public can see tenant by slug for client view" ON tenants;
     DROP POLICY IF EXISTS "Allow anon to manage tenants in debug" ON tenants;
+    DROP POLICY IF EXISTS "DEBUG_Allow anon to manage tenants in debug" ON tenants;
     
     -- Profiles
     DROP POLICY IF EXISTS "Users can see their own profile" ON profiles;
     DROP POLICY IF EXISTS "Admins can see profiles of their tenant" ON profiles;
     DROP POLICY IF EXISTS "Allow anon to manage profiles in debug" ON profiles;
+    DROP POLICY IF EXISTS "DEBUG_Allow anon to manage profiles in debug" ON profiles;
     
     -- Categories
     DROP POLICY IF EXISTS "Public can see categories for tenant" ON categories;
@@ -173,6 +199,11 @@ BEGIN
     -- Orders
     DROP POLICY IF EXISTS "Clients can see their own orders" ON orders;
     DROP POLICY IF EXISTS "Tenant isolation for orders" ON orders;
+    DROP POLICY IF EXISTS "DEBUG_Allow anon to manage orders" ON orders;
+
+    -- Customers
+    DROP POLICY IF EXISTS "Public can see customers for tenant" ON customers;
+    DROP POLICY IF EXISTS "DEBUG_Allow anon to manage customers" ON customers;
 END $$;
 
 -- Policies for Exchange Rates
@@ -258,3 +289,15 @@ CREATE POLICY "Tenant isolation for orders" ON orders
         tenant_id = get_my_tenant_id()
         OR is_superadmin()
     );
+
+-- 🚨 DEBUG POLICY for Orders
+CREATE POLICY "DEBUG_Allow anon to manage orders" ON orders
+    FOR ALL TO anon USING (true) WITH CHECK (true);
+
+-- Policies for Customers
+CREATE POLICY "Public can see customers for tenant" ON customers
+    FOR SELECT USING (true);
+
+-- 🚨 DEBUG POLICY for Customers
+CREATE POLICY "DEBUG_Allow anon to manage customers" ON customers
+    FOR ALL TO anon USING (true) WITH CHECK (true);

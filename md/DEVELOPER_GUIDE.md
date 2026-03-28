@@ -55,22 +55,28 @@ Prysma utiliza una arquitectura **Multi-tenant dinámica** basada en subcarpetas
 
 ```text
 src/
-├── api/             # Capa de servicios (Supabase, GitHub, etc.)
-│   ├── githubService.js # Automatización de Repos, Secretos y Pages
-│   ├── tenantService.js # Gestión de la tabla 'tenants'
-│   ├── productService.js # Gestión de productos (multi-tenant)
-│   └── categoryService.js # Gestión de categorías (multi-tenant)
-├── components/      # UI Components atómicos y compartidos
-├── context/         # Estados globales
-│   ├── TenantContext.jsx # Detección de empresa y branding
-│   ├── CartContext.jsx   # Lógica del carrito de compras
-│   └── AuthContext.jsx   # Gestión de sesiones con Supabase
-├── views/           # Vistas principales del sistema
-│   ├── SuperAdmin/  # Panel de gestión de franquicias
-│   ├── Admin/       # Panel de gestión para el dueño de la tienda
-│   └── Client/      # Storefront y Checkout para el cliente final
-├── theme/           # Tokens de diseño (si aplica)
-└── utils/           # Helper functions (formateo, validación)
+├── api/             # 8 servicios (Supabase, GitHub, BCV, etc.)
+│   ├── githubService.js    # Repos, Secretos, Pages, Workflows
+│   ├── tenantService.js    # Gestión tabla 'tenants'
+│   ├── exchangeRateService.js # Scraping BCV (USD/EUR)
+│   ├── productService.js   # Productos (multi-tenant)
+│   ├── categoryService.js  # Categorías (multi-tenant)
+│   └── orderService.js     # Pedidos (multi-tenant)
+├── components/
+│   ├── Admin/       # ProductModal (crear/editar)
+│   ├── Client/      # ProductCard, ProductModal
+│   └── Common/      # ErrorBoundary
+├── context/
+│   ├── TenantContext.jsx # Detección, branding, servicios
+│   ├── CartContext.jsx   # Carrito de compras
+│   └── AuthContext.jsx   # Sesiones Supabase
+├── views/
+│   ├── SuperAdmin/  # Gestión de franquicias + Configurar Core
+│   ├── Admin/       # Dashboard del negocio con visualización de pedidos en vivo
+│   ├── Client/      # Storefront, Cart, Checkout, y OrderTrackingView
+│   ├── Delivery/    # DeliveryView para repartidores
+│   └── Login/       # LoginView
+└── utils/           # featureFlags.js, whatsappUtils.js
 ```
 
 ## 🤖 Antigravity & Workflows
@@ -96,6 +102,7 @@ Prysma automatiza el despliegue de nuevos tenants mediante `githubService.js`:
 ## 🔧 Utilidades Clave
 
 - **`githubService.setupTenantSecrets(repoName)`**: Configura las variables de entorno en el repositorio remoto.
+- **`githubService.setupCoreSecrets()`**: Configura secretos en el repositorio núcleo (prysma) desde el botón "Configurar Core" del SuperAdmin.
 - **`githubService.dispatchWorkflow(repoName)`**: Fuerza un nuevo despliegue en GitHub Actions.
 - **`basename` dinámico en `App.jsx`**: Permite que el SPA funcione tanto en `localhost` como en subcarpetas de producción.
 

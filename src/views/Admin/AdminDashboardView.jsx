@@ -2,17 +2,43 @@ import React, { useState, useEffect } from 'react';
 import { useTenant } from '../../context/TenantContext';
 import { 
   Plus, Package, Clock, DollarSign, Settings, RefreshCw, 
-  BarChart3, ChevronRight, Edit2, Trash2, Eye, EyeOff, Search, Menu, X, CheckCircle2 
+  BarChart3, ChevronRight, Edit2, Trash2, Eye, EyeOff, Search, Menu, X, CheckCircle2, Truck, Navigation, UserPlus 
 } from 'lucide-react';
 import { exchangeRateService } from '../../api/exchangeRateService';
+import { supabase } from '../../api/supabase';
 import { motion, AnimatePresence } from 'framer-motion';
 import ProductModal from '../../components/Admin/ProductModal';
+import ReceiptTicket from '../../components/Common/ReceiptTicket';
+import { MapContainer, TileLayer, Marker, useMapEvents } from 'react-leaflet';
+import 'leaflet/dist/leaflet.css';
+
+import L from 'leaflet';
+import icon from 'leaflet/dist/images/marker-icon.png';
+import iconShadow from 'leaflet/dist/images/marker-shadow.png';
+
+let DefaultIcon = L.icon({
+    iconUrl: icon,
+    shadowUrl: iconShadow,
+    iconSize: [25, 41],
+    iconAnchor: [12, 41]
+});
+L.Marker.prototype.options.icon = DefaultIcon;
+
+const LocationPicker = ({ position, setPosition }) => {
+  useMapEvents({
+    click(e) {
+      setPosition([e.latlng.lat, e.latlng.lng]);
+    },
+  });
+  return position ? <Marker position={position} /> : null;
+};
 
 const AdminDashboardView = () => {
-  const { tenant, productService } = useTenant();
+  const { tenant, productService, orderService } = useTenant();
   const [activeTab, setActiveTab] = useState('pedidos');
   const [exchangeRate, setExchangeRate] = useState({ rate: 36.50, mode: 'auto', currency_code: 'USD' });
   const [products, setProducts] = useState([]);
+  const [orders, setOrders] = useState([]);
   const [loading, setLoading] = useState(true);
   
   // New UI states
@@ -23,9 +49,42 @@ const AdminDashboardView = () => {
   const [sortConfig, setSortConfig] = useState({ key: 'name', direction: 'asc' });
   const [orderStatusFilter, setOrderStatusFilter] = useState('entrantes');
 
+  const [selectedOrder, setSelectedOrder] = useState(null);
+  const [deliveryDrivers, setDeliveryDrivers] = useState([]);
+
+  // Delivery config state
+  const [deliveryConfig, setDeliveryConfig] = useState({
+    kmRate: tenant?.settings?.delivery_km_rate || 1,
+    chargeUsd: tenant?.settings?.delivery_charge_usd || 1,
+    storeLat: tenant?.settings?.store_location?.lat || '',
+    storeLng: tenant?.settings?.store_location?.lng || '',
+  });
+
   useEffect(() => {
     if (tenant) {
       loadAdminData();
+
+      // Real-time subscription for new/updated orders
+      const channel = supabase
+        .channel(`admin-orders-${tenant.id}`)
+        .on('postgres_changes', {
+          event: '*',
+          schema: 'public',
+          table: 'orders',
+          filter: `tenant_id=eq.${tenant.id}`,
+        }, (payload) => {
+          setOrders(currentOrders => {
+            if (payload.eventType === 'INSERT') {
+              return [payload.new, ...currentOrders];
+            } else if (payload.eventType === 'UPDATE') {
+              return currentOrders.map(o => o.id === payload.new.id ? payload.new : o);
+            }
+            return currentOrders;
+          });
+        })
+        .subscribe();
+
+      return () => supabase.removeChannel(channel);
     }
   }, [tenant]);
 
@@ -62,48 +121,22 @@ const AdminDashboardView = () => {
       const rate = await exchangeRateService.getRate(tenant.id);
       if (rate) setExchangeRate(rate);
 
-      // Enhanced mock orders
-      setOrders([
-        { id: '01', customer: 'Juan Pérez', items: 'Hamburguesas • Pizzas', totalUSD: 24.50, status: 'entrantes', time: '5 mins' },
-        { id: '02', customer: 'Maria García', items: 'Bebidas • Postres', totalUSD: 12.00, status: 'pendiente', time: '15 mins' },
-        { id: '03', customer: 'Carlos Ruiz', items: 'Pizzas', totalUSD: 18.50, status: 'asignado', time: '2 mins' },
-        { id: '04', customer: 'Ana López', items: 'Hamburguesas', totalUSD: 9.00, status: 'entregando', time: 'Active' },
-        { id: '05', customer: 'Pedro Soto', items: 'Completo', totalUSD: 45.00, status: 'entregados', time: 'Ayer' },
-      ]);
+      // Load products
+      const productsData = await productService.getAll();
+      setProducts(productsData || []);
 
-      // Enhanced mock products
-      setProducts([
-        { 
-          id: 'p1', 
-          sku: 'HAM-001', 
-          name: 'Classic Burger', 
-          category: 'Hamburguesas', 
-          price: 8.50, 
-          is_available: true, 
-          images: ['https://images.unsplash.com/photo-1568901346375-23c9450c58cd?q=80&w=400'],
-          modifiers: [{ name: 'Extra Queso', extraPrice: 1.50 }]
-        },
-        { 
-          id: 'p2', 
-          sku: 'PIZ-002', 
-          name: 'Pepperoni Pizza', 
-          category: 'Pizzas', 
-          price: 12.00, 
-          is_available: true, 
-          images: ['https://images.unsplash.com/photo-1628840042765-356cda07504e?q=80&w=400'],
-          modifiers: []
-        },
-        { 
-          id: 'p3', 
-          sku: 'BEB-003', 
-          name: 'Coca-Cola', 
-          category: 'Bebidas', 
-          price: 1.50, 
-          is_available: false, 
-          images: ['https://images.unsplash.com/photo-1622483767028-3f66f32aef97?q=80&w=400'],
-          modifiers: []
-        },
-      ]);
+      // Load orders
+      const ordersData = await orderService.getAll();
+      setOrders(ordersData?.sort((a,b) => new Date(b.created_at) - new Date(a.created_at)) || []);
+
+      // Load delivery drivers
+      const { data: driversData } = await supabase
+        .from('profiles')
+        .select('*')
+        .eq('tenant_id', tenant.id)
+        .eq('role', 'delivery');
+      if (driversData) setDeliveryDrivers(driversData);
+
     } catch (err) {
       console.error("Error loading admin data", err);
     } finally {
@@ -111,7 +144,15 @@ const AdminDashboardView = () => {
     }
   };
 
-  const [orders, setOrders] = useState([]);
+  const toggleDriverActive = async (id, currentStatus) => {
+    try {
+      const newStatus = !currentStatus;
+      await supabase.from('profiles').update({ is_active: newStatus }).eq('id', id);
+      setDeliveryDrivers(drivers => drivers.map(d => d.id === id ? { ...d, is_active: newStatus } : d));
+    } catch (err) {
+      alert("Error actualizando estado del repartidor: " + err.message);
+    }
+  };
 
   const handleSyncRate = async () => {
     if (!tenant?.id) return;
@@ -173,13 +214,53 @@ const AdminDashboardView = () => {
     p.category.toLowerCase().includes(searchQuery.toLowerCase())
   );
 
-  const handleSaveConfig = () => {
-    // Save to tenant or individual service
+  const handleCaptureStoreLocation = () => {
+    if ('geolocation' in navigator) {
+      navigator.geolocation.getCurrentPosition(
+        (pos) => {
+          setDeliveryConfig(prev => ({
+            ...prev,
+            storeLat: pos.coords.latitude,
+            storeLng: pos.coords.longitude,
+          }));
+        },
+        () => alert('No se pudo obtener la ubicación.')
+      );
+    }
+  };
+
+  const handleSaveConfig = async () => {
+    if (!tenant?.id) return;
     setLoading(true);
-    setTimeout(() => {
+    try {
+      // Save exchange rate if manual
+      if (exchangeRate.mode === 'manual') {
+        await exchangeRateService.updateRate(tenant.id, exchangeRate.rate, 'manual', exchangeRate.currency_code);
+      }
+
+      // Save delivery config to tenant settings
+      const { supabase } = await import('../../api/supabase');
+      const currentSettings = tenant.settings || {};
+      const updatedSettings = {
+        ...currentSettings,
+        delivery_km_rate: parseFloat(deliveryConfig.kmRate) || 1,
+        delivery_charge_usd: parseFloat(deliveryConfig.chargeUsd) || 1,
+        store_location: deliveryConfig.storeLat && deliveryConfig.storeLng
+          ? { lat: parseFloat(deliveryConfig.storeLat), lng: parseFloat(deliveryConfig.storeLng) }
+          : currentSettings.store_location || null,
+      };
+
+      await supabase
+        .from('tenants')
+        .update({ settings: updatedSettings })
+        .eq('id', tenant.id);
+
+    } catch (err) {
+      console.error('Error saving config:', err);
+      alert('Error al guardar: ' + err.message);
+    } finally {
       setLoading(false);
-      // alert('Configuración guardada correctamente');
-    }, 800);
+    }
   };
 
   const sidebarContent = (
@@ -206,6 +287,7 @@ const AdminDashboardView = () => {
             { id: 'entregados', label: 'Entregados' }
           ]},
           { id: 'productos', label: 'Productos', icon: Package },
+          { id: 'equipo', label: 'Equipo', icon: UserPlus },
           { id: 'config', label: 'Configuración', icon: Settings },
           { id: 'reportes', label: 'Reportes', icon: BarChart3 }
         ].map(item => (
@@ -334,44 +416,101 @@ const AdminDashboardView = () => {
             </header>
             
             <div className="grid grid-cols-1 gap-4">
-              {orders.filter(o => o.status === orderStatusFilter).map(order => (
-                <div key={order.id} className="bg-white p-6 rounded-3xl border border-zinc-100 flex flex-col md:flex-row items-center justify-between group hover:border-primary transition-all cursor-pointer hover:-translate-y-1">
-                  <div className="flex items-center gap-6 w-full md:w-auto">
-                    <div className="w-14 h-14 bg-zinc-100 rounded-2xl flex items-center justify-center font-black text-zinc-400 text-lg border border-zinc-200">#{order.id}</div>
-                    <div>
-                      <h3 className="font-black text-zinc-900 text-lg">{order.customer}</h3>
-                      <div className="flex items-center gap-3 mt-1">
-                        <span className="text-[10px] text-zinc-400 font-bold uppercase tracking-widest bg-zinc-50 px-2 py-0.5 rounded-full">{order.items}</span>
-                        <div className="flex items-center gap-1.5 text-zinc-500">
-                          <Clock size={12} />
-                          <span className="text-[10px] font-bold">{order.time}</span>
+              {orders.filter(o => o.status === orderStatusFilter).map(order => {
+                const customer = order.customer_data || {};
+                const itemsCount = order.items?.reduce((acc, item) => acc + item.quantity, 0) || 0;
+                const pData = order.payment_data || {};
+                const exchange = pData.exchange_rate || exchangeRate.rate;
+                
+                let finalBs = 0;
+                let finalUSD = 0;
+                
+                // Compatibility fallback
+                if (!pData.food_payment) {
+                   finalUSD = (pData.subtotal_usd || 0) + (pData.delivery_cost_usd || 0) || order.total || 0;
+                   finalBs = finalUSD * exchange;
+                } else {
+                   if (pData.food_payment === 'pago_movil') finalBs += (pData.subtotal_usd || 0) * exchange;
+                   else finalUSD += (pData.subtotal_usd || 0);
+                   
+                   if (pData.delivery_payment === 'pago_movil') finalBs += (pData.delivery_cost_usd || 0) * exchange;
+                   else finalUSD += (pData.delivery_cost_usd || 0);
+                }
+
+                return (
+                  <div key={order.id} className="bg-white p-6 rounded-3xl border border-zinc-100 flex flex-col md:flex-row items-center justify-between group hover:border-primary transition-all">
+                    <div 
+                      className="flex items-center gap-6 w-full md:w-auto cursor-pointer flex-1"
+                      onClick={() => setSelectedOrder(order)}
+                    >
+                      <div className="w-14 h-14 bg-zinc-100 rounded-2xl flex items-center justify-center font-black text-zinc-400 text-lg border border-zinc-200">
+                        #{order.number || order.id?.slice(0,4)}
+                      </div>
+                      <div>
+                        <h3 className="font-black text-zinc-900 text-lg">{customer.first_name} {customer.last_name}</h3>
+                        <div className="flex items-center gap-3 mt-1">
+                          <span className="text-[10px] text-zinc-500 font-bold uppercase tracking-widest bg-zinc-50 px-2 flex py-0.5 rounded-full">{itemsCount} items</span>
+                          <div className="flex items-center gap-1.5 text-zinc-500">
+                            <Clock size={12} />
+                            <span className="text-[10px] font-bold">{formatDate(order.created_at)}</span>
+                          </div>
                         </div>
                       </div>
                     </div>
-                  </div>
-                  <div className="flex items-center justify-between md:justify-end gap-10 w-full md:w-auto mt-6 md:mt-0 pt-4 md:pt-0 border-t md:border-t-0 border-zinc-50">
-                    <div className="text-right">
-                      <div className="font-black text-2xl text-zinc-900">${order.totalUSD.toFixed(2)}</div>
-                      <div className="text-[10px] text-zinc-400 font-bold uppercase tracking-[0.2em]">{(order.totalUSD * exchangeRate.rate).toFixed(2)} Bs.</div>
-                    </div>
-                    <div className="flex items-center gap-4">
-                      <div 
-                        className="px-4 py-2 rounded-xl text-[10px] font-black uppercase tracking-widest border"
-                        style={{ 
-                          backgroundColor: 'var(--primary-color)10', 
-                          color: 'var(--primary-color)',
-                          borderColor: 'var(--primary-color)20'
-                        }}
-                      >
-                        {orderStatusFilter}
+                    
+                    <div className="flex items-center justify-between md:justify-end gap-10 w-full md:w-auto mt-6 md:mt-0 pt-4 md:pt-0 border-t md:border-t-0 border-zinc-50">
+                      <div className="text-right">
+                        {finalUSD > 0 && <div className="font-black text-2xl text-zinc-900">${finalUSD.toFixed(2)}</div>}
+                        {finalBs > 0 && <div className={`font-bold uppercase tracking-[0.2em] ${finalUSD > 0 ? 'text-[10px] text-zinc-400' : 'text-xl text-zinc-900'}`}>{finalBs.toLocaleString('es-VE', {minimumFractionDigits: 2, maximumFractionDigits: 2})} Bs.</div>}
                       </div>
-                      <div className="w-10 h-10 rounded-xl bg-zinc-50 flex items-center justify-center group-hover:bg-primary group-hover:text-white transition-all">
-                        <ChevronRight size={20} />
+                      
+                      <div className="flex flex-col items-end gap-2">
+                        <div className="flex items-center gap-2">
+                          <select 
+                            value={order.status}
+                            onChange={async (e) => {
+                              const newStatus = e.target.value;
+                              await orderService.updateStatus(order.id, newStatus);
+                              setOrders(orders.map(o => o.id === order.id ? { ...o, status: newStatus } : o));
+                            }}
+                            className="px-2 py-1 rounded-xl text-[10px] font-black uppercase tracking-widest border border-zinc-200 outline-none cursor-pointer"
+                          >
+                            {['entrantes', 'pendiente', 'asignado', 'entregando', 'entregados'].map(s => (
+                              <option key={s} value={s}>{s}</option>
+                            ))}
+                          </select>
+                          
+                          {order.payment_data?.delivery_type === 'delivery' && ['pendiente', 'entrantes'].includes(order.status) && (
+                            <select 
+                              onChange={async (e) => {
+                                const driverId = e.target.value;
+                                if (driverId) {
+                                  await orderService.assignDriver(order.id, driverId);
+                                  setOrders(orders.map(o => o.id === order.id ? { ...o, status: 'asignado', delivery_driver_id: driverId } : o));
+                                }
+                              }}
+                              className="px-2 py-1 rounded-xl text-[10px] font-black uppercase tracking-widest border bg-zinc-900 text-white outline-none cursor-pointer"
+                              defaultValue=""
+                            >
+                              <option value="" disabled>Asignar Motorizado</option>
+                              {deliveryDrivers.filter(d => d.is_active).map(d => (
+                                <option key={d.id} value={d.id}>{d.name || d.first_name || d.email || 'Repartidor'}</option>
+                              ))}
+                            </select>
+                          )}
+                        </div>
+                        
+                        <button 
+                          onClick={() => setSelectedOrder(order)}
+                          className="flex items-center gap-1 text-[10px] font-bold text-zinc-400 hover:text-zinc-900 transition-colors uppercase"
+                        >
+                          <Eye size={12} /> Ver Ticket
+                        </button>
                       </div>
                     </div>
                   </div>
-                </div>
-              ))}
+                );
+              })}
               {orders.filter(o => o.status === orderStatusFilter).length === 0 && (
                 <div className="py-20 text-center opacity-20">
                   <Clock size={64} className="mx-auto mb-4" />
@@ -530,6 +669,75 @@ const AdminDashboardView = () => {
           </motion.div>
         )}
 
+        {activeTab === 'equipo' && (
+          <motion.div initial={{ opacity: 0, x: 20 }} animate={{ opacity: 1, x: 0 }}>
+            <header className="mb-10 flex flex-col md:flex-row md:items-end justify-between gap-4">
+              <div>
+                <h1 className="text-4xl font-black text-zinc-900 tracking-tighter mb-2">Equipo Delivery</h1>
+                <p className="text-zinc-500 font-medium">Gestiona el personal motorizado y aprueba su ingreso al sistema.</p>
+              </div>
+            </header>
+
+            <div className="bg-white rounded-[32px] border border-zinc-100 overflow-hidden">
+              <div className="overflow-x-auto">
+                <table className="w-full text-left">
+                  <thead className="bg-zinc-50/50 border-b border-zinc-100">
+                    <tr>
+                      <th className="p-6 text-[10px] font-black uppercase tracking-[0.2em] text-zinc-400 whitespace-nowrap">Repartidor</th>
+                      <th className="p-6 text-[10px] font-black uppercase tracking-[0.2em] text-zinc-400 whitespace-nowrap">Contacto</th>
+                      <th className="p-6 text-[10px] font-black uppercase tracking-[0.2em] text-zinc-400 text-right whitespace-nowrap">Estado / Acción</th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-zinc-50">
+                    {deliveryDrivers.length === 0 ? (
+                      <tr>
+                        <td colSpan="3" className="p-20 text-center opacity-20">
+                          <UserPlus size={64} className="mx-auto mb-4" />
+                          <p className="font-black uppercase tracking-[0.2em] text-sm">No hay repartidores registrados</p>
+                        </td>
+                      </tr>
+                    ) : (
+                      deliveryDrivers.map(driver => (
+                        <tr key={driver.id} className="hover:bg-zinc-50/50 transition-colors group">
+                          <td className="p-6">
+                            <div className="flex items-center gap-4">
+                              <div className="w-12 h-12 bg-zinc-100 rounded-2xl flex items-center justify-center font-black text-zinc-400 text-lg border border-zinc-200 uppercase">
+                                {(driver.name || driver.email || 'D')[0]}
+                              </div>
+                              <span className="font-black text-zinc-900 block text-lg">{driver.name || driver.first_name || 'Sin Nombre'}</span>
+                            </div>
+                          </td>
+                          <td className="p-6">
+                            <span className="text-zinc-500 font-mono font-medium">{driver.phone || driver.email || 'N/A'}</span>
+                          </td>
+                          <td className="p-6 text-right">
+                            <button 
+                              onClick={() => toggleDriverActive(driver.id, driver.is_active)}
+                              className={`px-6 py-3 rounded-2xl text-[10px] font-black uppercase tracking-[0.2em] transition-all transform active:scale-95 flex items-center gap-2 ml-auto ${
+                                driver.is_active 
+                                  ? 'bg-emerald-50 text-emerald-600 hover:bg-rose-50 hover:text-rose-600 hover:border-rose-100 border border-emerald-100' 
+                                  : 'bg-rose-50 text-rose-600 hover:bg-emerald-50 hover:text-emerald-600 hover:border-emerald-100 border border-rose-100'
+                              }`}
+                            >
+                              <div className={`w-2 h-2 rounded-full ${driver.is_active ? 'bg-emerald-500 group-hover:bg-rose-500' : 'bg-rose-500 group-hover:bg-emerald-500'}`} />
+                              {driver.is_active ? 'Activo' : 'Inactivo'}
+                            </button>
+                            {driver.is_active ? (
+                               <p className="text-[9px] text-zinc-400 font-bold uppercase tracking-widest mt-2">Haz clic para Suspender</p>
+                            ) : (
+                               <p className="text-[9px] text-orange-400 font-bold uppercase tracking-widest mt-2">Haz clic para Aprobar</p>
+                            )}
+                          </td>
+                        </tr>
+                      ))
+                    )}
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          </motion.div>
+        )}
+
         {activeTab === 'config' && (
           <motion.div initial={{ opacity: 0, x: 20 }} animate={{ opacity: 1, x: 0 }} className="max-w-3xl mx-auto">
             <header className="mb-12">
@@ -629,6 +837,70 @@ const AdminDashboardView = () => {
                 </div>
               </div>
 
+              {/* Delivery Cost Configuration */}
+              <div className="pt-8 border-t border-zinc-100">
+                <div className="flex items-center gap-3 mb-8">
+                  <div className="p-2 bg-orange-50 rounded-xl text-orange-500"><Truck size={24} /></div>
+                  <h3 className="text-xl font-black">Costo de Delivery</h3>
+                </div>
+
+                <div className="bg-zinc-50/50 p-6 rounded-3xl border border-zinc-100 space-y-6">
+                  <div className="grid grid-cols-2 gap-4">
+                    <div>
+                      <label className="text-[10px] font-black text-zinc-500 uppercase tracking-widest mb-2 block">Cada X kilómetros</label>
+                      <input 
+                        type="number" 
+                        step="0.1" 
+                        min="0.1"
+                        value={deliveryConfig.kmRate}
+                        onChange={(e) => setDeliveryConfig({...deliveryConfig, kmRate: e.target.value})}
+                        className="w-full bg-white border border-zinc-100 p-4 rounded-xl outline-none focus:ring-2 focus:ring-primary font-black text-xl tracking-tighter"
+                        placeholder="1"
+                      />
+                    </div>
+                    <div>
+                      <label className="text-[10px] font-black text-zinc-500 uppercase tracking-widest mb-2 block">Cobrar (USD)</label>
+                      <input 
+                        type="number" 
+                        step="0.5" 
+                        min="0"
+                        value={deliveryConfig.chargeUsd}
+                        onChange={(e) => setDeliveryConfig({...deliveryConfig, chargeUsd: e.target.value})}
+                        className="w-full bg-white border border-zinc-100 p-4 rounded-xl outline-none focus:ring-2 focus:ring-primary font-black text-xl tracking-tighter"
+                        placeholder="1"
+                      />
+                    </div>
+                  </div>
+
+                  <div>
+                    <label className="text-[10px] font-black text-zinc-500 uppercase tracking-widest mb-2 block">Ubicación de la Tienda</label>
+                    <div className="h-64 rounded-2xl overflow-hidden border border-zinc-200 relative z-10">
+                      <MapContainer 
+                        center={deliveryConfig.storeLat && deliveryConfig.storeLng ? [deliveryConfig.storeLat, deliveryConfig.storeLng] : [10.4806, -66.9036]} 
+                        zoom={13} 
+                        style={{ height: '100%', width: '100%' }}
+                      >
+                        <TileLayer url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png" />
+                        <LocationPicker 
+                          position={deliveryConfig.storeLat && deliveryConfig.storeLng ? [deliveryConfig.storeLat, deliveryConfig.storeLng] : null} 
+                          setPosition={(pos) => setDeliveryConfig({...deliveryConfig, storeLat: pos[0], storeLng: pos[1]})} 
+                        />
+                      </MapContainer>
+                      
+                      <button
+                        type="button"
+                        onClick={handleCaptureStoreLocation}
+                        className="absolute bottom-4 right-4 z-1000 bg-white py-2 px-4 rounded-full shadow-xl border border-zinc-200 hover:scale-[1.05] active:scale-95 transition-all flex items-center gap-2 font-bold text-sm"
+                        style={{ color: 'var(--primary-color)' }}
+                      >
+                        <Navigation size={18} />
+                        Ubicación Actual
+                      </button>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
               <div className="pt-6">
                 <button 
                   onClick={handleSaveConfig}
@@ -651,6 +923,16 @@ const AdminDashboardView = () => {
         product={editingProduct}
         onSave={handleSaveProduct}
       />
+
+      {/* Embedded Receipt Ticket Modal explicitly for Admin */}
+      {selectedOrder && (
+        <ReceiptTicket
+          order={selectedOrder}
+          tenantName={tenant?.name}
+          exchangeRate={exchangeRate.rate}
+          onClose={() => setSelectedOrder(null)}
+        />
+      )}
     </div>
   );
 };

@@ -3,7 +3,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { Plus, Minus, ShoppingCart } from 'lucide-react';
 import { useCart } from '../../context/CartContext';
 
-const ProductCard = ({ product, exchangeRate = 1 }) => {
+const ProductCard = ({ product, exchangeRate = 1, onOpenModal }) => {
   const { addToCart, updateQuantity, getProductQuantity } = useCart();
   const quantityInCart = getProductQuantity(product.id);
 
@@ -15,11 +15,9 @@ const ProductCard = ({ product, exchangeRate = 1 }) => {
 
   const handleAddClick = (e) => {
     e.stopPropagation();
-    // If product has modifiers, we should open the modal instead.
-    // For now, simple add for demo.
-    if (product.hasModifiers) {
-      // openModal(product); 
-      // (This will be implemented in ProductModal)
+    // If product has modifiers, open the modal instead to let user choose
+    if (product.modifiers && product.modifiers.length > 0) {
+      if (onOpenModal) onOpenModal();
     } else {
       addToCart(product, null, 1);
     }
@@ -41,14 +39,13 @@ const ProductCard = ({ product, exchangeRate = 1 }) => {
           className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-500"
         />
         
-        {/* Price Tag (Glassmorphism) */}
-        <div className="absolute top-3 right-3 flex flex-col items-end gap-1">
-          <div className="bg-black/60 backdrop-blur-md px-3 py-1 rounded-full border border-white/20">
-            <span className="text-white font-bold text-sm">${product.price.toFixed(2)}</span>
-          </div>
-          <div className="bg-white/40 backdrop-blur-sm px-2 py-0.5 rounded-full border border-white/40">
-            <span className="text-zinc-900 font-extrabold text-[10px]">{priceBs} Bs.</span>
-          </div>
+        {/* Gradient overlay for price legibility */}
+        <div className="absolute inset-x-0 bottom-0 h-20 bg-linear-to-t from-black/60 to-transparent pointer-events-none" />
+
+        {/* Price inside image - bottom right, no capsule */}
+        <div className="absolute bottom-2 right-3 flex flex-col items-end z-10">
+          <span className="text-white font-black text-lg drop-shadow-lg">${product.price.toFixed(2)}</span>
+          <span className="text-white/80 font-bold text-sm drop-shadow-md">{priceBs} Bs.</span>
         </div>
 
         {/* Quantity Indicator in Image */}
@@ -81,9 +78,10 @@ const ProductCard = ({ product, exchangeRate = 1 }) => {
           {quantityInCart === 0 ? (
             <button
               onClick={handleAddClick}
-              className="w-full py-3 bg-zinc-900 text-white rounded-xl font-black text-xs uppercase tracking-tighter flex items-center justify-center gap-2 hover:bg-zinc-800 active:scale-95 transition-all"
+              className="w-full py-3 bg-zinc-900 text-white rounded-xl font-black text-xs uppercase tracking-tighter flex items-center justify-center gap-2 hover:brightness-110 active:scale-95 transition-all shadow-md group"
+              style={{ backgroundColor: 'var(--secondary-color, #18181b)' }}
             >
-              <Plus size={16} strokeWidth={3} />
+              <Plus size={16} strokeWidth={3} className="group-hover:rotate-90 transition-transform" />
               Agregar
             </button>
           ) : (

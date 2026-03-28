@@ -1,5 +1,19 @@
 # Registro de Cambios y Arquitectura (Prysma)
 
+## [2.3.0] - 2026-03-26
+### Added
+- **Cart UX Overhaul**: Reemplazo completo de la página estática `/cart` por un `CartDrawer` altamente responsivo (Overlay lateral en Desktop, Deslizante inferior en Móvil).
+- **Persistent Cart State**: Reestructuración de `App.jsx` para que el `CartProvider` envuelva todas las rutas del Tenant, evitando la pérdida de estado del carrito al cambiar de página. LocalStorage es hidratado con sincronía Lazy Init.
+- **Branding Secondary & Accents**: Integración total de CSS variables `--secondary-color` y `--accent-1` en los botones Call-to-Action del Storefront (`ProductCard`, `ProductModal`, `CartDrawer`).
+
+## [2.2.0] - 2026-03-26
+### Added
+- **Real-Time Order Flow**: Integración completa de la creación de pedidos en Supabase desde el checkout, guardando cliente, items y desglose de pagos por separado (comida vs delivery).
+- **ReceiptTicket Component**: Componente nativo estilo ticket de impresora térmica de 80mm para recibos de pedidos. Formatea moneda inteligentemente (Bs. para Pago Móvil, USD para Efectivo/Zelle).
+- **Delivery View**: Nueva aplicación móvil dedicada en `/:tenantSlug/delivery` para que los repartidores actualicen estados de entrega en tiempo real.
+- **Admin Dashboard Real Data**: El panel administrativo ahora consume la API de Supabase para órdenes y motorizados reales en tiempo real, reemplazando toda la data de prueba.
+- **Framer Motion Transitions**: Navegación fluida tipo SPA a lo largo de toda la plataforma a nivel global (App.jsx) y de pestañas.
+
 ## [2.1.0] - 2026-03-19
 ### Added
 - **Flat UI Overhaul**: Eliminación total de sombras y adopción de una estética plana y minimalista basada en bordes y contrastes suaves.

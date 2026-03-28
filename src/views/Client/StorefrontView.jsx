@@ -2,10 +2,12 @@ import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useTenant } from '../../context/TenantContext';
 import { useCart } from '../../context/CartContext';
+import { exchangeRateService } from '../../api/exchangeRateService';
 import ProductCard from '../../components/Client/ProductCard';
 import ProductModal from '../../components/Client/ProductModal';
+import CartDrawer from '../../components/Client/CartDrawer';
 import { motion, AnimatePresence } from 'framer-motion';
-import { ShoppingBag, Search, Menu as MenuIcon, X, Settings } from 'lucide-react';
+import { ShoppingBag, ShoppingCart, Search } from 'lucide-react';
 
 const StorefrontView = () => {
   const navigate = useNavigate();
@@ -16,9 +18,10 @@ const StorefrontView = () => {
   const [activeCategory, setActiveCategory] = useState('all');
   const [selectedProduct, setSelectedProduct] = useState(null);
   const [isModalOpen, setIsModalOpen] = useState(false);
+  const [isCartDrawerOpen, setIsCartDrawerOpen] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
   const [loading, setLoading] = useState(true);
-  const [isMenuOpen, setIsMenuOpen] = useState(false);
+
 
   const [exchangeRate, setExchangeRate] = useState(36.50);
 
@@ -68,8 +71,10 @@ const StorefrontView = () => {
               image_url: 'https://images.unsplash.com/photo-1568901346375-23c9450c58cd?q=80&w=800&auto=format&fit=crop',
               hasModifiers: true,
               modifiers: [
-                { name: 'Término de la carne', required: true, options: ['Bien cocida', 'Término medio', 'Al punto'] },
-                { name: 'Extras', required: false, options: ['Extra Queso', 'Tocineta', 'Huevo'] }
+                { name: 'Extra Queso Cheddar', extraPrice: 1.50 },
+                { name: 'Tocineta Crujiente', extraPrice: 2.00 },
+                { name: 'Huevo Frito', extraPrice: 1.00 },
+                { name: 'Doble Carne', extraPrice: 3.50 }
               ]
             },
             { 
@@ -159,10 +164,18 @@ const StorefrontView = () => {
               <Search size={20} />
             </button>
             <button 
-              onClick={() => setIsMenuOpen(true)}
-              className="p-2.5 bg-zinc-100 text-zinc-500 hover:text-primary rounded-xl transition-all"
+              onClick={() => setIsCartDrawerOpen(true)}
+              className="relative p-2.5 bg-zinc-100 text-zinc-500 hover:text-primary rounded-xl transition-all"
             >
-              <MenuIcon size={20} />
+              <ShoppingCart size={20} />
+              {cartCount > 0 && (
+                <span 
+                  className="absolute -top-1 -right-1 w-5 h-5 text-[10px] font-bold text-white rounded-full flex items-center justify-center border-2 border-white"
+                  style={{ backgroundColor: 'var(--primary-color, #ea580c)' }}
+                >
+                  {cartCount}
+                </span>
+              )}
             </button>
           </div>
         </div>
@@ -219,6 +232,7 @@ const StorefrontView = () => {
                 <ProductCard 
                   product={product} 
                   exchangeRate={exchangeRate} 
+                  onOpenModal={() => handleProductClick(product)}
                 />
               </div>
             ))}
@@ -226,35 +240,11 @@ const StorefrontView = () => {
         </div>
       </main>
 
-      {/* Floating Cart Button */}
-      {cartCount > 0 && (
-        <motion.div 
-          initial={{ y: 100 }}
-          animate={{ y: 0 }}
-          className="fixed bottom-6 left-1/2 -translate-x-1/2 z-40 w-full max-w-md px-4"
-        >
-          <button 
-            onClick={() => navigate(`/${tenant?.slug || 'default'}/checkout`)}
-            className="w-full bg-zinc-900 text-white py-4 px-6 rounded-2xl flex items-center justify-between hover:scale-[1.02] active:scale-[0.98] transition-all group"
-          >
-          <div className="flex items-center gap-3">
-            <div className="relative">
-              <ShoppingBag size={24} className="group-hover:rotate-12 transition-transform" />
-              {cartCount > 0 && (
-                <span className="absolute -top-2 -right-2 bg-primary text-white text-[10px] w-5 h-5 rounded-full flex items-center justify-center font-bold border-2 border-zinc-900" style={{ backgroundColor: 'var(--primary-color)' }}>
-                  {cartCount}
-                </span>
-              )}
-            </div>
-            <span className="font-bold">Ver Carrito</span>
-          </div>
-          <div className="text-right">
-            <div className="font-bold">${cartTotalUSD.toFixed(2)}</div>
-            <div className="text-[10px] opacity-60">{(cartTotalUSD * exchangeRate).toFixed(2)} Bs.</div>
-          </div>
-        </button>
-      </motion.div>
-      )}
+      {/* Cart Drawer Output */}
+      <CartDrawer 
+        isOpen={isCartDrawerOpen} 
+        onClose={() => setIsCartDrawerOpen(false)} 
+      />
 
       {/* Product Detail Modal */}
       <ProductModal 
@@ -264,57 +254,7 @@ const StorefrontView = () => {
         exchangeRate={exchangeRate}
       />
 
-      {/* Side Menu Drawer */}
-      <AnimatePresence>
-        {isMenuOpen && (
-          <>
-            <motion.div 
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              exit={{ opacity: 0 }}
-              onClick={() => setIsMenuOpen(false)}
-              className="fixed inset-0 bg-black/60 backdrop-blur-sm z-60"
-            />
-            <motion.div 
-              initial={{ x: '100%' }}
-              animate={{ x: 0 }}
-              exit={{ x: '100%' }}
-              transition={{ type: 'spring', damping: 25, stiffness: 200 }}
-              className="fixed top-0 right-0 bottom-0 w-80 bg-white z-70 p-8 border-l border-zinc-100 flex flex-col"
-            >
-              <div className="flex justify-between items-center mb-12">
-                <h2 className="text-xl font-black">Menú</h2>
-                <button onClick={() => setIsMenuOpen(false)} className="p-2 text-zinc-400 hover:text-zinc-900">
-                  <X size={24} />
-                </button>
-              </div>
 
-              <nav className="flex-1 space-y-4">
-                <button 
-                  onClick={() => {
-                    setIsMenuOpen(false);
-                    navigate(`/${tenant?.slug}/login`);
-                  }}
-                  className="w-full flex items-center gap-4 p-4 bg-zinc-50 rounded-2xl hover:bg-primary/10 transition-colors group"
-                >
-                  <div className="w-10 h-10 rounded-xl bg-primary/10 flex items-center justify-center text-primary group-hover:bg-primary group-hover:text-white transition-all" style={{ color: 'var(--primary-color)' }}>
-                    <Settings size={20} />
-                  </div>
-                  <div className="text-left">
-                    <div className="font-black text-sm">Gestionar Tienda</div>
-                    <div className="text-[10px] text-zinc-500 font-bold uppercase tracking-widest">Acceso Administrador</div>
-                  </div>
-                </button>
-              </nav>
-
-              <div className="pt-8 border-t border-zinc-100">
-                <p className="text-[10px] text-zinc-400 font-bold uppercase tracking-widest mb-4">Branding Prysma</p>
-                <img src="/assets/prysma_full_logo_white.svg" className="h-6 w-auto opacity-20 grayscale brightness-0" alt="Prysma" />
-              </div>
-            </motion.div>
-          </>
-        )}
-      </AnimatePresence>
     </div>
   );
 };

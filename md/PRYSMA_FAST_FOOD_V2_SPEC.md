@@ -1,7 +1,3 @@
-vamos a crear una web app
-hosteada en github, programada con JavaScript y React con base de datos en SupaBase, dame un panel de super admin para crear una nueva empresa, y de ahi vamos trabajando, quiero hacer un nucleo central en github, y que los repos rama se alimenten de el para asegurar actualizaciones futuras, hago enfasis en que quiero escalar a varias empresas / franquicias y cada una debe ser personalizable, explicame paso a paso lo que tenemos que hacer, vamos desde crear el repo nucleo en git hub hasta configurar supabase
-paso a paso
-
 # Especificación Funcional: Fast Food App V2 🍔🚀
 
 Esta documentación desglosa el proyecto en bloques funcionales y técnicos para una reconstrucción total desde cero, optimizada para **Supabase** y una arquitectura de código moderna (**React + Vite + Tailwind**).
@@ -74,12 +70,13 @@ Experiencia de usuario rápida y "deliciosa".
 ```text
 src/
 ├── api/             # Servicios de Supabase y GitHub
-├── components/      # UI Atómica y componentes Admin/Client
+├── components/      # UI Atómica y componentes Admin/Client/Common
 ├── context/         # AuthContext, TenantContext, CartContext
 ├── views/
-│   ├── Client/      # Storefront y Checkout
-│   ├── Admin/       # Dashboard y Pedidos
-│   └── SuperAdmin/  # Gestión Global
+│   ├── Client/      # Storefront, Checkout y Order Tracking
+│   ├── Admin/       # Dashboard y Gestión de Pedidos Live
+│   ├── Delivery/    # App Móvil para Repartidores
+│   └── SuperAdmin/  # Gestión Global de Clientes
 ```
 
 ---

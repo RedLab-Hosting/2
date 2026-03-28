@@ -44,6 +44,35 @@ export const AuthProvider = ({ children }) => {
     return data;
   };
 
+  const registerDelivery = async (email, password, name, phone, tenantId) => {
+    // 1. Create auth user
+    const { data: authData, error: authError } = await supabase.auth.signUp({
+      email,
+      password,
+    });
+    
+    if (authError) throw authError;
+    if (!authData?.user) throw new Error("No se pudo crear el usuario");
+
+    // 2. Insert into profiles with pending status
+    const { error: profileError } = await supabase.from('profiles').insert({
+      id: authData.user.id,
+      tenant_id: tenantId,
+      role: 'delivery',
+      name: name,
+      phone: phone,
+      is_active: false
+    });
+
+    if (profileError) throw profileError;
+
+    // Logout immediately since they are pending approval, we don't want them authed yet
+    await supabase.auth.signOut();
+    setUser(null);
+    
+    return authData;
+  };
+
   const loginAsDebug = (role = 'admin') => {
     const mockUser = {
       id: 'debug-user-id',
@@ -69,6 +98,7 @@ export const AuthProvider = ({ children }) => {
       user, 
       loading, 
       login, 
+      registerDelivery,
       loginAsDebug,
       logout,
       isAuthenticated: !!user 
